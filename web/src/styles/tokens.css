@@ -1,0 +1,148 @@
+/* SkillVerify design tokens (Shell Step A).
+   The SAME variable names exist in both modes, so components never branch on mode.
+   Colours and sizes are the locked design-system values: do not add or change any here without a new design decision. */
+
+:root {
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+/* ---------------------------------------------------------------- recruiter */
+[data-mode="recruiter"] {
+  --page: #EEF1F4;
+  --surface: #FFFFFF;              /* card */
+  --divider: #DDE3E9;
+  --fill: #E4E8EC;                 /* neutral fill */
+  --on-fill: #3A4652;              /* text on the neutral fill */
+  --text: #1B2530;
+  --text-2: #566271;
+
+  --accent: #0F6B6B;
+  --accent-pressed: #0B5656;
+  --accent-wash: #E1F0EF;
+  --on-accent-wash: #0B4B4B;
+  --on-accent: #FFFFFF;            /* text on the accent colour */
+
+  --gold-wash: #F7E4DC;
+  --gold-accent: #C98B7B;          /* border / icon only, never text */
+  --gold-text: #7F4333;
+
+  --err-wash: #FBE6E3;
+  --err-accent: #C8564B;           /* border / icon only, never text */
+  --err-text: #8F2F28;
+
+  /* The approved tick on the Question review screen. Used for nothing else. */
+  --approve-wash: #DDF0E3;
+  --approve-wash-hover: #CFE9D8;
+  --approve-ink: #2E7D4F;
+
+  --input-border: #8A96A3;
+  --input-border-w: 1px;
+  --toggle-off: #7C8997;
+  --disabled: #D3DAE0;
+
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --pad-card: 24px;
+  --gap: 16px;
+  --control-h: 44px;
+  --badge-h: 28px;
+  --shadow-card: 0 1px 2px rgba(27, 37, 48, .06), 0 4px 12px rgba(27, 37, 48, .04);
+
+  /* type: size / line-height / weight */
+  --t-score-size: 56px;    --t-score-lh: 56px;    --t-score-weight: 600;
+  --t-heading-size: 28px;  --t-heading-lh: 36px;  --t-heading-weight: 600;
+  --t-title-size: 20px;    --t-title-lh: 28px;    --t-title-weight: 600;
+  --t-body-size: 15px;     --t-body-lh: 24px;     --t-body-weight: 400;
+  --t-label-size: 12px;    --t-label-lh: 16px;    --t-label-weight: 600;  --t-label-tracking: .08em;
+  --t-code-size: 14px;     --t-code-lh: 22px;     --t-code-weight: 400;
+}
+
+/* ------------------------------------------------------------------ student */
+[data-mode="student"] {
+  --page: #FAF6EE;
+  --surface: #FFFDF8;              /* panel */
+  --divider: #E6DFD0;              /* line */
+  --fill: #F3EEE2;                 /* quiet fill */
+  --on-fill: #2E3B3A;              /* text on the quiet fill (the normal text colour) */
+  --text: #2E3B3A;
+  --text-2: #5F6E6B;
+
+  --accent: #357A80;               /* lagoon */
+  --accent-pressed: #2A6469;
+  --accent-wash: #DDEBE6;
+  --on-accent-wash: #245A5F;
+  --on-accent: #FFFFFF;
+
+  --gold-wash: #F7E4DC;
+  --gold-accent: #C98B7B;
+  --gold-text: #7F4333;
+
+  --err-wash: #FBE4E0;             /* rose wash */
+  --err-accent: #D9776B;           /* border / timer dot only */
+  --err-text: #9B3B33;
+
+  --input-border: #958C70;
+  --input-border-w: 1.5px;
+  --toggle-off: #74857F;
+  --disabled: #E6DFD0;
+
+  --radius-card: 20px;
+  --radius-control: 14px;
+  --pad-card: 32px;
+  --gap: 12px;
+  --control-h: 48px;
+  --badge-h: 32px;
+  --shadow-card: 0 1px 3px rgba(60, 50, 30, .05);
+
+  --t-heading-size: 32px;  --t-heading-lh: 44px;  --t-heading-weight: 300;
+  --t-question-size: 24px; --t-question-lh: 34px; --t-question-weight: 400;
+  --t-body-size: 17px;     --t-body-lh: 28px;     --t-body-weight: 400;
+  --t-caption-size: 14px;  --t-caption-lh: 22px;  --t-caption-weight: 400;
+  --t-timer-size: 14px;    --t-timer-lh: 20px;    --t-timer-weight: 500;
+  --t-code-size: 15px;     --t-code-lh: 26px;     --t-code-weight: 400;
+}
+
+/* ------------------------------------------------------------- type classes */
+/* Each class reads its size from the mode-specific variables. A style a mode does not define falls back to body. */
+.t-score    { font-size: var(--t-score-size, var(--t-body-size)); line-height: var(--t-score-lh, var(--t-body-lh)); font-weight: var(--t-score-weight, var(--t-body-weight)); }
+.t-heading  { font-size: var(--t-heading-size, var(--t-body-size)); line-height: var(--t-heading-lh, var(--t-body-lh)); font-weight: var(--t-heading-weight, var(--t-body-weight)); }
+.t-title    { font-size: var(--t-title-size, var(--t-body-size)); line-height: var(--t-title-lh, var(--t-body-lh)); font-weight: var(--t-title-weight, var(--t-body-weight)); }
+.t-body     { font-size: var(--t-body-size); line-height: var(--t-body-lh); font-weight: var(--t-body-weight); }
+.t-label    { font-size: var(--t-label-size, var(--t-body-size)); line-height: var(--t-label-lh, var(--t-body-lh)); font-weight: var(--t-label-weight, var(--t-body-weight)); letter-spacing: var(--t-label-tracking, .08em); text-transform: uppercase; }
+.t-question { font-size: var(--t-question-size, var(--t-body-size)); line-height: var(--t-question-lh, var(--t-body-lh)); font-weight: var(--t-question-weight, var(--t-body-weight)); }
+.t-caption  { font-size: var(--t-caption-size, var(--t-body-size)); line-height: var(--t-caption-lh, var(--t-body-lh)); font-weight: var(--t-caption-weight, var(--t-body-weight)); }
+.t-timer    { font-size: var(--t-timer-size, var(--t-body-size)); line-height: var(--t-timer-lh, var(--t-body-lh)); font-weight: var(--t-timer-weight, var(--t-body-weight)); font-variant-numeric: tabular-nums; }
+.t-code     { font-family: var(--font-mono); font-size: var(--t-code-size); line-height: var(--t-code-lh); font-weight: var(--t-code-weight); }
+
+/* ---------------------------------------------------------------- base page */
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  background: var(--page);
+  color: var(--text);
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  font-weight: var(--t-body-weight);
+}
+
+/* ------------------------------------------------------- mode switch fading */
+/* ThemeProvider adds .mode-fading to <body> for the length of a mode change, so colours fade over 1200 ms
+   without slowing ordinary hover states the rest of the time. */
+@media (prefers-reduced-motion: no-preference) {
+  body.mode-fading,
+  body.mode-fading * {
+    transition:
+      background-color 1200ms ease-in-out,
+      color 1200ms ease-in-out,
+      border-color 1200ms ease-in-out,
+      box-shadow 1200ms ease-in-out;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.mode-fading,
+  body.mode-fading * {
+    transition: none !important;
+  }
+}

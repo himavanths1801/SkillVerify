@@ -1,0 +1,89 @@
+/* Upload screen (Step C). Uses only the Step A tokens. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.upload { display: flex; flex-direction: column; gap: var(--gap); }
+.upload h1 { margin: 0; }
+.upload h1:focus, .upload h2:focus, .banner-slot:focus { outline: none; }
+.upload__lead { margin: 0; color: var(--text-2); }
+.upload__note { margin: 0; color: var(--text-2); }
+.upload__cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); align-items: start; }
+.upload__submit { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.upload .sv-card { display: flex; flex-direction: column; gap: var(--gap); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gap); min-height: var(--control-h); }
+.card-head h2 { margin: 0; }
+.username-field { max-width: 380px; display: flex; flex-direction: column; gap: 6px; }
+
+/* Job description mode switch: "Upload file [track] Paste text", the active side in bold. */
+.mode-toggle { display: inline-flex; align-items: center; gap: 12px; color: var(--text-2); }
+.mode-toggle[data-active="file"] .mode-toggle__file { color: var(--text); font-weight: 600; }
+.mode-toggle[data-active="text"] .sv-toggle__label { color: var(--text); font-weight: 600; }
+.mode-toggle .sv-toggle__label { color: var(--text-2); }
+
+/* Drop zone */
+.dropzone {
+  box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  min-height: 144px; padding: var(--pad-card);
+  border: 1px dashed var(--input-border); border-radius: var(--radius-control); background: var(--surface);
+  text-align: center; cursor: pointer;
+}
+.dropzone[data-dragging="true"] { border-color: var(--accent); background: var(--accent-wash); }
+.dropzone[data-invalid="true"] { border-color: var(--err-accent); }
+.dropzone__icon { color: var(--accent); }
+.dropzone__text { margin: 0; }
+.dropzone__browse {
+  padding: 0; background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600;
+  text-decoration: underline; cursor: pointer;
+}
+.dropzone__browse:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.field-error { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; color: var(--err-text); }
+.field-error svg { flex: none; }
+
+/* File row: the FileChip stretched over the card, size pushed right */
+.file-row .sv-chip { display: flex; width: 100%; height: var(--control-h); }
+.sv-chip__meta { margin-left: auto; color: var(--text-2); font-family: var(--font-ui); font-size: var(--t-body-size); }
+.file-row .sv-chip__remove { margin-right: 0; }
+
+/* Text area and error border */
+.sv-textarea {
+  box-sizing: border-box; width: 100%; min-height: 144px; padding: 12px 14px; resize: vertical;
+  background: var(--surface); color: var(--text); font-family: var(--font-ui);
+  border: var(--input-border-w) solid var(--input-border); border-radius: var(--radius-control);
+}
+.sv-textarea::placeholder { color: var(--text-2); }
+.sv-textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sv-textarea:read-only { background: var(--disabled); color: var(--text-2); }
+.sv-input.sv-input--error, .sv-input.sv-input--error:focus { border-color: var(--err-accent); }
+
+/* Banner slot above the cards */
+.banner-slot { border-radius: var(--radius-control); }
+
+/* Progress card */
+.progress-card h2 { margin: 0 0 var(--gap); }
+.progress-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.progress-step { display: flex; align-items: center; gap: 12px; color: var(--text-2); }
+.progress-step p { margin: 0; }
+.progress-step__mark {
+  box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--input-border);
+}
+.progress-step--done { color: var(--text); }
+.progress-step--done .progress-step__mark { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.progress-step--current { color: var(--accent); font-weight: 600; }
+.progress-step--current .progress-step__mark { border-color: var(--divider); border-top-color: var(--accent); border-width: 2px; position: relative; }
+@media (prefers-reduced-motion: no-preference) {
+  .progress-step--current .progress-step__mark { animation: sv-spin 2.4s linear infinite; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-step--current .progress-step__mark { border-color: var(--accent); }
+  .progress-step--current .progress-step__mark::after {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px;
+    border-radius: 50%; background: var(--accent);
+  }
+}
+@keyframes sv-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 800px) { .upload__cards { grid-template-columns: 1fr; } }

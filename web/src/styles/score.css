@@ -1,0 +1,89 @@
+/* Score screen (Step D). Uses only the Step A tokens. */
+.score { display: flex; flex-direction: column; gap: var(--gap); }
+.score h1 { margin: 0; }
+.score h1:focus { outline: none; }
+.score h2, .score h3 { margin: 0; }
+.score p { margin: 0; }
+.score__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gap); }
+.score__who { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.handle { display: inline-flex; align-items: center; gap: 6px; height: var(--badge-h); padding: 0 12px; background: var(--fill); color: var(--on-fill); border-radius: var(--radius-control); }
+
+.score__top { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--gap); align-items: stretch; }
+.score__metrics { display: flex; flex-direction: column; gap: var(--gap); }
+.score__pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); align-items: start; }
+.score__pair .sv-card { display: flex; flex-direction: column; gap: var(--gap); }
+.score__empty { color: var(--text-2); }
+.score__next { display: flex; justify-content: flex-end; }
+
+/* Score card */
+.score-card { display: flex; flex-direction: column; gap: 12px; }
+.score-card__label { color: var(--text-2); }
+.score-card__value { display: flex; align-items: baseline; gap: 12px; }
+.score-card__of, .score-card__note { color: var(--text-2); }
+.score-card__text { color: var(--text); }
+.cutoff-input { max-width: 160px; }
+
+/* The 0-100 bar */
+.scorebar { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.scorebar__track { position: relative; height: 6px; border-radius: 3px; background: var(--fill); }
+.scorebar__fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--accent); }
+.scorebar__dot {
+  position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--surface); box-sizing: border-box;
+}
+.scorebar__tick { position: absolute; top: -8px; bottom: -8px; width: 0; border-left: 1px dashed var(--text-2); }
+.scorebar__labels { position: relative; display: flex; justify-content: space-between; color: var(--text-2); }
+.scorebar__cutoff { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+
+/* Small metric cards */
+.metric { display: flex; flex-direction: column; gap: 8px; }
+.metric__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gap); }
+.metric__title { font-weight: 600; }
+.metric__text { color: var(--text-2); }
+.bar { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; }
+.bar__fill { height: 100%; background: var(--accent); }
+
+/* GitHub scan */
+.scan-card { display: flex; flex-direction: column; gap: 12px; }
+.scan-card__head { display: flex; align-items: center; justify-content: space-between; }
+.scan-card__row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 32px; }
+.scan-card__langs { display: inline-flex; align-items: center; gap: 12px; }
+.scan-card__note { color: var(--gold-text); }
+.score .t-label { color: var(--text-2); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.chip { display: inline-flex; align-items: center; height: var(--badge-h); padding: 0 12px; background: var(--fill); color: var(--on-fill); border-radius: var(--radius-control); }
+
+/* Skills table */
+.skills-card { display: flex; flex-direction: column; gap: 8px; }
+.skills-table { width: 100%; border-collapse: collapse; }
+.skills-table th, .skills-table td { padding: 12px 8px; text-align: left; vertical-align: middle; }
+.skills-table thead th { border-bottom: 1px solid var(--divider); }
+.skills-table tbody tr + tr > * { border-top: 1px solid var(--divider); }
+.skills-table tfoot > tr > * { border-top: 1px solid var(--divider); }
+.skills-table__skill { font-weight: 600; }
+.skills-table tfoot th { font-weight: 600; }
+.skills-table__num { text-align: right !important; white-space: nowrap; }
+.skills-table__total { font-weight: 600; }
+
+/* Notes and the rose-gold info banner */
+.notes-card { display: flex; flex-direction: column; gap: 12px; }
+.notes-card__title { display: flex; align-items: center; gap: 8px; }
+.notes-card__icon { color: var(--accent); }
+.notes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.info-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  background: var(--gold-wash); color: var(--gold-text); border: 1px solid var(--gold-accent); border-radius: var(--radius-control);
+}
+.info-banner__icon { flex: none; color: var(--gold-accent); }
+
+/* Loading skeleton */
+.skeleton { background: var(--fill); border-radius: var(--radius-control); }
+.skeleton--line { width: 200px; height: 20px; margin-top: 8px; }
+.skeleton--block { width: 100%; height: 72px; }
+.skeleton-card--tall .skeleton--block { height: 180px; }
+
+@media (max-width: 800px) {
+  .score__top, .score__pair { grid-template-columns: 1fr; }
+  .score__head { flex-direction: column; }
+}

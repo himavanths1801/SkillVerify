@@ -1,0 +1,105 @@
+{
+  "a": {
+    "schema_version": 1,
+    "status": "ok",
+    "message": "",
+    "generated_at": "2026-10-27T10:00:00+00:00",
+    "job_name": "Data_Analyst",
+    "cv_label": "priya_sample",
+    "weights": { "must_have": 3, "nice_to_have": 1, "credit_confirmed": 1, "credit_claimed_unconfirmed": 0.5, "credit_not_claimed": 0, "weak_evidence_credit": 0.75, "not_detectable_credit": 0.5 },
+    "github": {
+      "username": "octocat", "cv_username": "octocat", "username_matches_cv": true, "validator_status": "ok",
+      "tech_scan_status": "ok", "scan_complete": true, "counted_repos": 6, "repos_scanned": 6,
+      "total_commits_in_window": 40, "active_repos_in_window": 2, "languages_top": ["CSS", "HTML", "JavaScript"]
+    },
+    "score": {
+      "repo_fingerprint": 44.4, "claim_coverage": 88.9, "checkable_only": 46.2, "verifiable_share": 72.2,
+      "points_earned": 8, "points_possible": 18,
+      "by_tier": { "must_have": { "skills": 5, "weight": 15, "points": 7.5 }, "nice_to_have": { "skills": 3, "weight": 3, "points": 0.5 } }
+    },
+    "skills": [
+      { "skill": "SQL", "category": "languages", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "not_found", "confidence": null, "basis": "full_scan", "credit": 0.5, "points": 1.5, "reason": "not_found_on_github" },
+      { "skill": "Python", "category": "languages", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "not_found", "confidence": null, "basis": "full_scan", "credit": 0.5, "points": 1.5, "reason": "not_found_on_github" },
+      { "skill": "Pandas", "category": "libraries", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "not_found", "confidence": null, "basis": "full_scan", "credit": 0.5, "points": 1.5, "reason": "not_found_on_github" },
+      { "skill": "Tableau", "category": "tools", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "not_detectable_from_github", "confidence": null, "basis": "not_checkable", "credit": 0.5, "points": 1.5, "reason": "not_detectable" },
+      { "skill": "Microsoft Excel", "category": "tools", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "not_found", "confidence": null, "basis": "full_scan", "credit": 0.5, "points": 1.5, "reason": "not_found_on_github" },
+      { "skill": "Git", "category": "tools", "tier": "nice_to_have", "tier_basis": "default", "weight": 1, "claimed": false, "github_status": "not_detectable_from_github", "confidence": null, "basis": "not_checkable", "credit": 0, "points": 0, "reason": "not_claimed" },
+      { "skill": "Snowflake", "category": "tools", "tier": "nice_to_have", "tier_basis": "default", "weight": 1, "claimed": false, "github_status": "not_found", "confidence": null, "basis": "full_scan", "credit": 0, "points": 0, "reason": "not_claimed" },
+      { "skill": "Statistics", "category": "concepts", "tier": "nice_to_have", "tier_basis": "default", "weight": 1, "claimed": true, "github_status": "not_detectable_from_github", "confidence": null, "basis": "not_checkable", "credit": 0.5, "points": 0.5, "reason": "not_detectable" }
+    ],
+    "hidden_strengths": [],
+    "cv_extra_skills": { "count": 8, "names": ["R", "NumPy", "Data Visualization", "Power BI", "MySQL", "PostgreSQL", "Matplotlib", "Seaborn"] },
+    "jd_unmapped_terms": 1,
+    "cv_warnings": [],
+    "flags": ["jd_has_unmapped_terms"],
+    "sensitivity": null,
+    "counts": { "jd_skills": 8, "must_have": 5, "nice_to_have": 3, "claimed": 6, "confirmed": 0, "unconfirmed": 0, "not_claimed": 2, "not_detectable": 3, "hidden_strengths": 0 }
+  },
+  "b": {
+    "schema_version": 1,
+    "status": "ok",
+    "message": "",
+    "generated_at": "2026-10-27T10:00:00+00:00",
+    "job_name": "Data_Analyst",
+    "cv_label": "priya_sample",
+    "weights": { "must_have": 3, "nice_to_have": 1, "credit_confirmed": 1, "credit_claimed_unconfirmed": 0.5, "credit_not_claimed": 0, "weak_evidence_credit": 0.75, "not_detectable_credit": 0.5 },
+    "github": {
+      "username": "octocat", "cv_username": "octocat", "username_matches_cv": true, "validator_status": "ok",
+      "tech_scan_status": "ok", "scan_complete": true, "counted_repos": 6, "repos_scanned": 6,
+      "total_commits_in_window": 40, "active_repos_in_window": 2, "languages_top": ["CSS", "HTML", "JavaScript"]
+    },
+    "score": {
+      "repo_fingerprint": 69.4, "claim_coverage": 88.9, "checkable_only": 80.8, "verifiable_share": 72.2,
+      "points_earned": 12.5, "points_possible": 18,
+      "by_tier": { "must_have": { "skills": 5, "weight": 15, "points": 12 }, "nice_to_have": { "skills": 3, "weight": 3, "points": 0.5 } }
+    },
+    "skills": [
+      { "skill": "SQL", "category": "languages", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "found", "confidence": "strong", "basis": "full_scan", "credit": 1, "points": 3, "reason": "confirmed" },
+      { "skill": "Python", "category": "languages", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "found", "confidence": "strong", "basis": "full_scan", "credit": 1, "points": 3, "reason": "confirmed" },
+      { "skill": "Pandas", "category": "libraries", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "found", "confidence": "medium", "basis": "full_scan", "credit": 1, "points": 3, "reason": "confirmed" },
+      { "skill": "Microsoft Excel", "category": "tools", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "not_found", "confidence": null, "basis": "full_scan", "credit": 0.5, "points": 1.5, "reason": "not_found_on_github" },
+      { "skill": "Tableau", "category": "tools", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": "not_detectable_from_github", "confidence": null, "basis": "not_checkable", "credit": 0.5, "points": 1.5, "reason": "not_detectable" },
+      { "skill": "Git", "category": "tools", "tier": "nice_to_have", "tier_basis": "default", "weight": 1, "claimed": false, "github_status": "not_detectable_from_github", "confidence": null, "basis": "not_checkable", "credit": 0, "points": 0, "reason": "not_claimed" },
+      { "skill": "Snowflake", "category": "tools", "tier": "nice_to_have", "tier_basis": "default", "weight": 1, "claimed": false, "github_status": "not_found", "confidence": null, "basis": "full_scan", "credit": 0, "points": 0, "reason": "not_claimed" },
+      { "skill": "Statistics", "category": "concepts", "tier": "nice_to_have", "tier_basis": "default", "weight": 1, "claimed": true, "github_status": "not_detectable_from_github", "confidence": null, "basis": "not_checkable", "credit": 0.5, "points": 0.5, "reason": "not_detectable" }
+    ],
+    "hidden_strengths": [{ "skill": "Jupyter Notebook", "confidence": "medium" }, { "skill": "Flask", "confidence": "weak" }],
+    "cv_extra_skills": { "count": 8, "names": ["R", "NumPy", "Data Visualization", "Power BI", "MySQL", "PostgreSQL", "Matplotlib", "Seaborn"] },
+    "jd_unmapped_terms": 1,
+    "cv_warnings": [],
+    "flags": ["jd_has_unmapped_terms"],
+    "sensitivity": null,
+    "counts": { "jd_skills": 8, "must_have": 5, "nice_to_have": 3, "claimed": 6, "confirmed": 3, "unconfirmed": 0, "not_claimed": 2, "not_detectable": 3, "hidden_strengths": 2 }
+  },
+  "c": {
+    "schema_version": 1,
+    "status": "no_github_evidence",
+    "message": "The GitHub account has no public repositories to check.",
+    "generated_at": "2026-10-27T10:00:00+00:00",
+    "job_name": "Data_Analyst",
+    "cv_label": "priya_sample",
+    "weights": { "must_have": 3, "nice_to_have": 1, "credit_confirmed": 1, "credit_claimed_unconfirmed": 0.5, "credit_not_claimed": 0, "weak_evidence_credit": 0.75, "not_detectable_credit": 0.5 },
+    "github": {
+      "username": "octocat", "cv_username": "octocat", "username_matches_cv": null, "validator_status": "no_public_repos",
+      "tech_scan_status": null, "scan_complete": null, "counted_repos": null, "repos_scanned": null,
+      "total_commits_in_window": null, "active_repos_in_window": null, "languages_top": []
+    },
+    "score": {
+      "repo_fingerprint": null, "claim_coverage": null, "checkable_only": null, "verifiable_share": null,
+      "points_earned": 0, "points_possible": 10,
+      "by_tier": { "must_have": { "skills": 2, "weight": 6, "points": 0 }, "nice_to_have": { "skills": 1, "weight": 1, "points": 0 } }
+    },
+    "skills": [
+      { "skill": "Python", "category": "languages", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": null, "confidence": null, "basis": null, "credit": null, "points": null, "reason": "no_github_evidence" },
+      { "skill": "SQL", "category": "languages", "tier": "must_have", "tier_basis": "explicit_cue", "weight": 3, "claimed": true, "github_status": null, "confidence": null, "basis": null, "credit": null, "points": null, "reason": "no_github_evidence" },
+      { "skill": "Tableau", "category": "tools", "tier": "nice_to_have", "tier_basis": "default", "weight": 1, "claimed": false, "github_status": null, "confidence": null, "basis": null, "credit": 0, "points": 0, "reason": "not_claimed" }
+    ],
+    "hidden_strengths": [],
+    "cv_extra_skills": { "count": 0, "names": [] },
+    "jd_unmapped_terms": 0,
+    "cv_warnings": [],
+    "flags": [],
+    "sensitivity": null,
+    "counts": { "jd_skills": 3, "must_have": 2, "nice_to_have": 1, "claimed": 2, "confirmed": 0, "unconfirmed": 0, "not_claimed": 1, "not_detectable": 0, "hidden_strengths": 0 }
+  }
+}

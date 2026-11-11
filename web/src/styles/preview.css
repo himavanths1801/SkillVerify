@@ -1,0 +1,49 @@
+/* Layout for the design-system preview page only. Colours come from the token variables of each panel's own mode. */
+.pv-page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 24px;
+  align-items: start;
+}
+.pv-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+  padding: 24px;
+  background: var(--page);
+  color: var(--text);
+  border-radius: var(--radius-card);
+  font-family: var(--font-ui);
+}
+.pv-panel__head h2,
+.pv-panel__head p,
+.pv-panel__head div { margin: 0; }
+.pv-eyebrow { margin: 0 0 8px; color: var(--text-2); }
+.pv-muted { color: var(--text-2); margin: 0; }
+
+.pv-section { display: flex; flex-direction: column; gap: var(--gap); }
+.pv-section__title { margin: 0; color: var(--text-2); }
+
+.pv-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--gap); }
+.pv-swatch { display: flex; flex-direction: column; gap: 4px; }
+.pv-swatch__chip { height: 40px; border-radius: var(--radius-control); border: 1px solid var(--divider); }
+.pv-swatch__name { color: var(--text); }
+.pv-swatch__hex { color: var(--text-2); }
+
+.pv-type { display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--gap); border-bottom: 1px solid var(--divider); }
+.pv-type:last-child { border-bottom: 0; padding-bottom: 0; }
+.pv-type__spec { color: var(--text-2); }
+
+.pv-row { display: flex; flex-direction: column; gap: 8px; }
+.pv-row__label { color: var(--text-2); }
+.pv-row__content { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap); }
+
+.pv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+
+.pv-shapes { display: flex; flex-wrap: wrap; gap: var(--gap); }
+.pv-shape { display: flex; align-items: center; justify-content: center; width: 180px; height: 96px; background: var(--fill); color: var(--on-fill); }
+.pv-facts { margin: 0; padding-left: 20px; color: var(--text-2); }
+.pv-shadow { display: flex; align-items: center; gap: var(--gap); flex-wrap: wrap; }
+.pv-shadow__value { color: var(--text-2); }

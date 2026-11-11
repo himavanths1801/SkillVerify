@@ -1,0 +1,200 @@
+/* Base components. Styled ONLY through the design-token variables (tokens.css): no mode branching, no stray values. */
+
+/* ---------------------------------------------------------------- focus ring */
+/* Every interactive element gets the same 2px accent ring when reached by keyboard. */
+.sv-btn:focus-visible,
+.sv-btn[data-force="focus"],
+.sv-input:focus-visible,
+.sv-select:focus-visible,
+.sv-input[data-force="focus"],
+.sv-select[data-force="focus"],
+.sv-toggle:focus-visible,
+.sv-chip__remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------- Card */
+.sv-card {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-card);
+  padding: var(--pad-card);
+  box-shadow: var(--shadow-card); /* no border */
+}
+
+/* ------------------------------------------------------------------- Button */
+.sv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: var(--control-h);
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-family: var(--font-ui);
+  font-size: var(--t-body-size);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+.sv-btn--primary { background: var(--accent); color: var(--on-accent); }
+.sv-btn--primary:hover:not(:disabled),
+.sv-btn--primary[data-force="hover"] { background: var(--accent-pressed); }
+.sv-btn--primary:active:not(:disabled),
+.sv-btn--primary[data-force="pressed"] { background: var(--accent-pressed); }
+
+.sv-btn--secondary { background: var(--surface); color: var(--accent); border-color: var(--accent); }
+.sv-btn--secondary:hover:not(:disabled),
+.sv-btn--secondary[data-force="hover"] { background: var(--accent-wash); color: var(--on-accent-wash); }
+.sv-btn--secondary:active:not(:disabled),
+.sv-btn--secondary[data-force="pressed"] { background: var(--accent-wash); color: var(--accent-pressed); border-color: var(--accent-pressed); }
+
+.sv-btn:disabled { background: var(--disabled); color: var(--text-2); border-color: transparent; cursor: not-allowed; }
+
+/* ------------------------------------------------------------ Input / Select */
+.sv-field { display: flex; flex-direction: column; gap: 6px; }
+.sv-field__label { font-size: var(--t-body-size); line-height: var(--t-body-lh); font-weight: 500; color: var(--text); }
+.sv-field__helper { font-size: var(--t-caption-size, var(--t-body-size)); line-height: var(--t-caption-lh, var(--t-body-lh)); color: var(--text-2); }
+
+.sv-input,
+.sv-select {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: var(--input-border-w) solid var(--input-border);
+  border-radius: var(--radius-control);
+  font-family: var(--font-ui);
+  font-size: var(--t-body-size);
+}
+.sv-input:focus,
+.sv-select:focus,
+.sv-input[data-force="focus"],
+.sv-select[data-force="focus"] { border-color: var(--accent); }
+.sv-input:disabled,
+.sv-select:disabled { background: var(--disabled); color: var(--text-2); }
+
+.sv-select-wrap { position: relative; }
+.sv-select { appearance: none; padding-right: 44px; }
+.sv-select__chevron { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text-2); pointer-events: none; }
+
+/* ----------------------------------------------------------------- FileChip */
+.sv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: var(--badge-h);
+  padding: 0 12px;
+  background: var(--fill);
+  color: var(--on-fill);
+  border-radius: var(--radius-control);
+}
+.sv-chip__name { white-space: nowrap; }
+.sv-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin-right: -4px;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  color: var(--on-fill);
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------- Toggle */
+.sv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  cursor: pointer;
+}
+.sv-toggle__track { position: relative; flex: none; width: 44px; height: 24px; border-radius: 12px; background: var(--toggle-off); }
+.sv-toggle__knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--on-accent); }
+.sv-toggle[aria-checked="true"] .sv-toggle__track { background: var(--accent); }
+.sv-toggle[aria-checked="true"] .sv-toggle__knob { transform: translateX(20px); }
+.sv-toggle:disabled { cursor: not-allowed; color: var(--text-2); }
+.sv-toggle:disabled .sv-toggle__track { background: var(--disabled); }
+
+/* -------------------------------------------------------------- StatusBadge */
+.sv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: var(--badge-h);
+  padding: 0 12px;
+  border-radius: calc(var(--badge-h) / 2);
+  font-size: var(--t-caption-size, 14px);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+.sv-badge--found,
+.sv-badge--ready { background: var(--accent-wash); color: var(--on-accent-wash); }
+.sv-badge--gold { background: var(--gold-wash); color: var(--gold-text); }
+.sv-badge--gold .sv-badge__icon { color: var(--gold-accent); }
+.sv-badge--neutral,
+.sv-badge--notstarted { background: var(--fill); color: var(--on-fill); }
+
+/* ------------------------------------------------------------------- Banner */
+.sv-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--err-wash);
+  color: var(--err-text);
+  border: 1px solid var(--err-accent);
+  border-radius: var(--radius-control);
+}
+.sv-banner__icon { flex: none; margin-top: 1px; color: var(--err-accent); }
+.sv-banner__body { flex: 1; min-width: 0; }
+.sv-banner__title { font-weight: 600; font-size: var(--t-body-size); line-height: var(--t-body-lh); }
+.sv-banner__message { font-size: var(--t-body-size); line-height: var(--t-body-lh); }
+
+/* -------------------------------------------------------------------- Timer */
+.sv-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: var(--badge-h);
+  padding: 0 14px;
+  background: var(--fill);
+  color: var(--on-fill);
+  border-radius: calc(var(--badge-h) / 2);
+}
+.sv-timer--low { color: var(--err-text); }
+.sv-timer__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--err-accent);
+  animation: sv-timer-pulse 1.8s ease-in-out infinite; /* slow: never faster than once per second */
+}
+@keyframes sv-timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+/* With reduced motion the pulse stops; the colour, the dot and the word "left" remain. */
+@media (prefers-reduced-motion: reduce) {
+  .sv-timer__dot { animation: none; }
+}
