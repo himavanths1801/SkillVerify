@@ -1,0 +1,40 @@
+ISHITA ROY
+Final-year B.Tech student | Machine Learning enthusiast
+ishita.roy@example.com | +1 555 010 4321 | Pune, India
+GitHub - @ishita-ml-notes | Kaggle: kaggle.com/ishitaroyexample
+
+OBJECTIVE
+Looking for an entry-level machine learning or data science role where I can apply computer vision and NLP skills.
+
+SKILLS
+Programming: Python, C++, SQL
+ML and data: NumPy, Pandas, scikit-learn, TensorFlow, Keras, PyTorch, OpenCV, Matplotlib
+Tools: Git, Jupyter Notebook, Streamlit, Docker, Weights and Biases
+NLP: NLTK, spaCy, Hugging Face Transformers
+
+PROJECTS
+Plant Disease Detector
+Built a convolutional network in TensorFlow and Keras that classifies leaf images into 12 disease classes with 94 percent accuracy. Images were preprocessed with OpenCV and the demo runs in Streamlit.
+Technologies: Python, TensorFlow, Keras, OpenCV, Streamlit
+
+Fake News Classifier
+Fine-tuned a Hugging Face Transformers model on a labelled news dataset and compared it with a scikit-learn baseline using NLTK for cleaning.
+Technologies: Python, Hugging Face, scikit-learn, NLTK
+
+Movie Recommender
+A collaborative-filtering recommender built with Pandas and NumPy, with experiment tracking in Weights and Biases.
+Technologies: Python, Pandas, NumPy, Weights and Biases
+
+INTERNSHIP
+Summer Intern, Orchid AI Labs (May - July 2024)
+- Cleaned image datasets and trained small PyTorch models for defect detection.
+- Wrote Jupyter Notebook reports comparing model accuracy.
+
+EDUCATION
+B.Tech in Computer Science and Engineering, Greenfield Institute of Technology (2021 - 2025)
+CGPA: 8.7 / 10
+Class XII: 92.4%
+
+ACHIEVEMENTS
+- Finalist, college hackathon 2024
+- Open-source contributor to a small data-cleaning library

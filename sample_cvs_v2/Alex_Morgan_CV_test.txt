@@ -1,0 +1,36 @@
+ALEX MORGAN
+Backend Developer
+alex.morgan@example.com | Bengaluru, India
+GitHub: https://github.com/alex-morgan-sample-dev
+
+SUMMARY
+Backend developer with 3 years of experience building and maintaining web services in Python. Comfortable owning a feature from database design to deployment. Enjoys clear APIs, readable code and small, reviewable changes.
+
+TECHNICAL SKILLS
+Languages: Python, SQL, Bash
+Frameworks and libraries: Flask, SQLAlchemy, Jinja2
+Data and storage: PostgreSQL, SQLite, Redis
+Tools: Git, Docker, pytest, Linux
+Practices: REST APIs, code review, unit testing
+
+EXPERIENCE
+Backend Developer, Northwind Software Pvt Ltd (2023 - present)
+- Built and maintained Flask services that handle customer orders and reports.
+- Designed relational schemas with SQLAlchemy and wrote migrations for schema changes.
+- Wrote SQL queries for reports and tuned slow queries.
+- Packaged services with Docker and automated releases with small Bash scripts.
+- Wrote pytest suites for new endpoints and fixed regressions found in review.
+
+Junior Developer, Contoso Labs (2022 - 2023)
+- Added features to an internal Python tool used by the support team.
+- Used Git branches and pull requests for all changes.
+- Cached slow lookups in Redis.
+
+PROJECTS
+Order tracker - a small web app for tracking deliveries, using Flask and a SQL database.
+Release helper - command line scripts that tag, build and publish a service with Git and Docker.
+
+EDUCATION
+B.Tech in Computer Science and Engineering, 2022
+
+Note: this is a made-up sample CV for software testing only. The name is fictional.

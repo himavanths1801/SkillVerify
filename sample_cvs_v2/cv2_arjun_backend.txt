@@ -1,0 +1,36 @@
+ARJUN MEHTA
+Pune, Maharashtra | +91 90000 22202 | arjun.mehta.sample@example.com
+GitHub | LinkedIn
+
+SUMMARY
+Computer Science undergraduate building backend services with Java, Spring Boot and PostgreSQL. Interested in REST API design, containers and cloud deployment.
+
+TECHNICAL SKILLS
+  - Programming Languages: Java, Python, JavaScript, TypeScript
+  - Backend: Spring Boot, REST APIs, Microservices, Hibernate, Pydantic
+  - Databases: PostgreSQL, MySQL, Redis
+  - DevOps & Cloud: Docker, Git, GitHub Actions, AWS, Datadog
+
+EDUCATION
+Deccan College of Engineering (Sample)    2027
+Bachelor of Engineering (B.E.) in Computer Science
+
+PROJECTS
+1. Library Management REST API | Java, Spring Boot, PostgreSQL, Docker
+   - Built a REST API for book lending with JWT authentication and role-based access
+   - Wrote integration tests and containerised the service with Docker
+   - Deployed the service to an AWS EC2 instance
+2. Event Ticket Booking Backend | Python, Flask, Redis, MySQL
+   - Implemented seat locking using Redis to avoid double booking under concurrent requests
+   - Documented all endpoints and validated payloads with Pydantic
+3. CI Pipeline for Personal Projects | GitHub Actions, Docker, Git
+   - Set up a GitHub Actions workflow that runs tests and builds a Docker image on every push
+   - Added basic monitoring dashboards in Datadog
+
+CERTIFICATIONS
+  - AWS Cloud Practitioner (sample)
+  - Java Programming - NPTEL
+
+PERSONAL DETAILS
+  - Languages Known: English, Marathi, Hindi
+  - Address: Pune, Maharashtra

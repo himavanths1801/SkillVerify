@@ -1,0 +1,35 @@
+SNEHA KULKARNI
+Hyderabad, Telangana | +91 90000 33303 | sneha.kulkarni.sample@example.com
+GitHub - github.com/github
+
+SUMMARY
+Aspiring machine learning engineer with coursework in deep learning and computer vision. Projects in image classification, NLP and model deployment.
+
+TECHNICAL SKILLS
+  - Programming Languages: Python, C++
+  - Machine Learning: PyTorch, TensorFlow, Scikit-Learn, Keras, OpenCV, Hugging Face Transformers
+  - Data Tools: NumPy, Pandas, Matplotlib, Jupyter
+  - Other: Git, Linux, FastAPI, MLflow
+
+EDUCATION
+Osmania Institute of Technology (Sample)    2026
+Bachelor of Technology (B.Tech.) in Artificial Intelligence
+
+PROJECTS
+1. Plant Disease Image Classifier | Python, PyTorch, OpenCV
+   - Trained a convolutional neural network to classify 12 leaf diseases with data augmentation
+   - Compared transfer learning against training from scratch and plotted the confusion matrix
+2. Sentiment Analysis of Product Reviews | Python, Hugging Face Transformers, Scikit-Learn
+   - Fine-tuned a pretrained transformer model on 50,000 labelled reviews
+   - Benchmarked it against a TF-IDF and logistic regression baseline
+3. Model Serving API | FastAPI, Docker, MLflow
+   - Wrapped a trained model in a FastAPI service and tracked experiments with MLflow
+   - Packaged the service as a Docker image
+
+CERTIFICATIONS
+  - Deep Learning Specialization - online course (sample)
+  - Machine Learning - Stanford Online (sample)
+
+PERSONAL DETAILS
+  - Languages Known: English, Telugu, Hindi
+  - Address: Hyderabad, Telangana

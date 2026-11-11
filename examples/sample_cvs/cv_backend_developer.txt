@@ -1,0 +1,42 @@
+RAHUL MEHTANI
+Backend Developer
+rahul.mehtani@example.com | +91 555 010 7788 | Chennai, India
+GitHub: https://github.com/rahul-mehtani-dev | Portfolio: rahul-mehtani.example.com
+
+SUMMARY
+Backend developer with three years of experience building REST APIs and payment services in Python.
+
+TECHNICAL SKILLS
+Languages: Python, JavaScript, Go, SQL
+Frameworks: FastAPI, Flask, Django, Pydantic
+Databases: PostgreSQL, Redis, MongoDB
+DevOps: Docker, Kubernetes, GitHub Actions, Terraform, Datadog
+Messaging: Apache Kafka, RabbitMQ
+Testing: Pytest, Postman
+Concepts: REST APIs, Microservices, CI/CD
+
+EXPERIENCE
+Backend Developer, Helio Payments (2022 - Present)
+- Designed REST APIs with FastAPI and Pydantic for the payments service.
+- Moved the deployment pipeline to GitHub Actions and Docker, and ran the services on Kubernetes.
+- Added Redis caching that cut the average response time by 40 percent.
+- Monitored latency and errors with Datadog dashboards.
+
+Software Engineer Intern, Brightside Labs (2021)
+- Wrote Flask endpoints and Pytest unit tests for an internal inventory tool.
+
+PROJECTS
+Order Service
+A microservice that accepts orders over a REST API, stores them in PostgreSQL and publishes events to Apache Kafka.
+Technologies: Python, FastAPI, PostgreSQL, Apache Kafka, Docker
+
+URL Shortener
+A small Go service with Redis storage and a Postman collection for the API.
+Technologies: Go, Redis, Postman
+
+Infrastructure as Code Demo
+Terraform scripts that create a Kubernetes cluster and deploy a sample Flask app with GitHub Actions.
+Technologies: Terraform, Kubernetes, Flask, GitHub Actions
+
+EDUCATION
+B.Tech in Computer Science, Riverside Institute of Technology (2018 - 2022)

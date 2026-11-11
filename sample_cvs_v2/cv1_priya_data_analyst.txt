@@ -1,0 +1,37 @@
+PRIYA RAMAN
+Chennai, Tamil Nadu | +91 90000 11101 | priya.raman.sample@example.com
+GitHub: https://github.com/octocat | LinkedIn: linkedin.com/in/priya-raman-sample
+
+SUMMARY
+Final-year Statistics undergraduate focused on data analysis and business intelligence. Comfortable with SQL, Python and dashboarding, with hands-on projects in sales and customer analytics.
+
+TECHNICAL SKILLS
+  - Programming Languages: Python, SQL, R
+  - Data & Analytics: Pandas, NumPy, Excel, Statistical Analysis, Data Visualization
+  - BI Tools: Tableau, Power BI, Looker
+  - Databases: MySQL, PostgreSQL
+
+EDUCATION
+Loyola Institute of Technology (Sample)    2026
+Bachelor of Science (B.Sc.) in Statistics
+
+PROJECTS
+1. Retail Sales Dashboard | SQL, Tableau, Excel
+   - Cleaned 120,000 rows of transaction data using SQL and Pandas and built a regional sales dashboard in Tableau
+   - Identified the three slowest-moving product categories using window functions and ranking queries
+   - Impact: Reduced weekly manual reporting effort by automating the refresh process
+2. Customer Churn Analysis | Python, Pandas, Matplotlib, Seaborn
+   - Analysed a telecom churn dataset to find the main drivers of customer loss
+   - Created correlation heatmaps and retention curves using Matplotlib and Seaborn
+   - Technologies: Pandas, NumPy, Statistical Analysis
+3. Marketing Spend Tracker | Power BI, Looker, PostgreSQL
+   - Designed a Power BI report connected to a PostgreSQL database for monthly campaign spend
+   - Prototyped the same views in Looker for comparison
+
+CERTIFICATIONS
+  - Google Data Analytics Certificate (sample)
+  - SQL for Data Science - online course
+
+PERSONAL DETAILS
+  - Languages Known: English, Tamil, Hindi
+  - Address: Chennai, Tamil Nadu

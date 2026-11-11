@@ -1,0 +1,40 @@
+MEERA IYER
+Data Analyst
+meera.iyer@example.com | +1 (555) 010-2345 | Bengaluru, India
+GitHub: github.com/meera-data-lab | LinkedIn: linkedin.com/in/meera-iyer-example
+
+SUMMARY
+Analyst with two years of experience turning messy sales and customer data into dashboards and decisions.
+
+SKILLS
+Languages: Python, SQL
+Libraries: Pandas, NumPy, Matplotlib, Seaborn, scikit-learn
+Databases: PostgreSQL, MySQL
+BI tools: Tableau, Power BI, Looker
+Other: Git, Docker, Microsoft Excel, Apache Airflow
+
+EXPERIENCE
+Data Analyst, Northwind Retail (2023 - Present)
+- Built weekly sales dashboards in Tableau and Looker used by the regional managers.
+- Wrote SQL on PostgreSQL to clean and join order, customer and returns tables.
+- Scheduled the nightly refresh with Apache Airflow and monitored it with Datadog.
+
+PROJECTS
+Customer Churn Predictor
+Trained a scikit-learn model on 40,000 telecom records to predict which customers would leave next month. Used Pandas for cleaning, Matplotlib for charts and Python throughout.
+Technologies: Python, Pandas, scikit-learn, Matplotlib
+
+Retail Sales Dashboard
+Designed a Power BI dashboard on top of a MySQL database with daily sales, margins and stock levels per store.
+Technologies: Power BI, MySQL, SQL
+
+Weather Data Pipeline
+Collected hourly weather data from a public API, validated the records with Pydantic and stored them in PostgreSQL every night.
+Technologies: Python, PostgreSQL, Pydantic, Docker
+
+EDUCATION
+B.Sc. in Statistics, Lakeview University (2019 - 2022)
+Class XII: 91.2%
+
+CERTIFICATIONS
+Google Data Analytics Certificate (2022)
