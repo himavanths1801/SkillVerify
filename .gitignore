@@ -1,0 +1,50 @@
+# --- Secrets and local configuration (never commit these) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# --- Node / web app ---
+node_modules/
+web/dist/
+web/*.tsbuildinfo
+*.log
+npm-debug.log*
+
+# --- Output and personal data ---
+# Real GitHub profile data and score files from local runs
+output/
+# Uploaded CVs and job descriptions from real candidates (the fictional samples in
+# sample_cvs_v2/, test_jds/ and examples/ are kept)
+uploads/
+*.local.pdf
+*.local.docx
+
+# --- Archives and stray files ---
+*.zip
+zid5P3gL
+
+# --- Editors and OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Web design previews (regenerable with web/scripts/screenshots-*.mjs; three are kept in docs/screenshots/) ---
+web/preview-*.png
