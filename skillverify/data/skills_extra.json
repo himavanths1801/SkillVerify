@@ -1,0 +1,13 @@
+{
+  "skills": [
+    {"id": "YOLO", "category": "data_ml",
+     "aliases": ["yolov3", "yolov4", "yolov5", "yolov7", "yolov8", "yolov9", "yolov10", "you only look once"],
+     "github_languages": []},
+    {"id": "PyCharm", "category": "tools",
+     "aliases": ["jetbrains pycharm", "pycharm ide", "pycharm community", "pycharm professional"],
+     "github_languages": []},
+    {"id": "VS Code", "category": "tools",
+     "aliases": ["vscode", "visual studio code", "microsoft vs code"],
+     "github_languages": []}
+  ]
+}

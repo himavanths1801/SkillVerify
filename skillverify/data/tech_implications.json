@@ -1,0 +1,9 @@
+{
+  "implications": [
+    {"skill": "Node.js", "implied_by": ["Express.js", "NestJS", "Next.js"]},
+    {"skill": "Machine Learning", "implied_by": ["scikit-learn", "PyTorch", "TensorFlow", "Keras", "Hugging Face"]},
+    {"skill": "Deep Learning", "implied_by": ["PyTorch", "TensorFlow", "Keras"]},
+    {"skill": "Artificial Intelligence", "implied_by": ["Hugging Face", "PyTorch", "TensorFlow", "Keras", "LangChain"]},
+    {"skill": "Docker", "implied_by": ["Docker Compose"]}
+  ]
+}
