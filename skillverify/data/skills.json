@@ -1,0 +1,1339 @@
+{
+  "skills": [
+    {
+      "id": "Python",
+      "category": "language",
+      "aliases": [
+        "python3",
+        "py",
+        "python programming",
+        "py3"
+      ],
+      "github_languages": [
+        "Python"
+      ]
+    },
+    {
+      "id": "JavaScript",
+      "category": "language",
+      "aliases": [
+        "js",
+        "ecmascript",
+        "es6",
+        "vanilla js",
+        "vanilla javascript",
+        "es2015"
+      ],
+      "github_languages": [
+        "JavaScript"
+      ]
+    },
+    {
+      "id": "TypeScript",
+      "category": "language",
+      "aliases": [
+        "ts"
+      ],
+      "github_languages": [
+        "TypeScript"
+      ]
+    },
+    {
+      "id": "Java",
+      "category": "language",
+      "aliases": [
+        "core java",
+        "java se"
+      ],
+      "github_languages": [
+        "Java"
+      ]
+    },
+    {
+      "id": "C",
+      "category": "language",
+      "aliases": [
+        "c language",
+        "c programming",
+        "c99",
+        "c11",
+        "c17"
+      ],
+      "github_languages": [
+        "C"
+      ]
+    },
+    {
+      "id": "C++",
+      "category": "language",
+      "aliases": [
+        "cpp",
+        "c plus plus",
+        "cplusplus"
+      ],
+      "github_languages": [
+        "C++"
+      ]
+    },
+    {
+      "id": "C#",
+      "category": "language",
+      "aliases": [
+        "c sharp",
+        "csharp"
+      ],
+      "github_languages": [
+        "C#"
+      ]
+    },
+    {
+      "id": "Go",
+      "category": "language",
+      "aliases": [
+        "golang",
+        "go lang"
+      ],
+      "github_languages": [
+        "Go"
+      ]
+    },
+    {
+      "id": "Rust",
+      "category": "language",
+      "aliases": [
+        "rustlang"
+      ],
+      "github_languages": [
+        "Rust"
+      ]
+    },
+    {
+      "id": "Ruby",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "Ruby"
+      ]
+    },
+    {
+      "id": "PHP",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "PHP"
+      ]
+    },
+    {
+      "id": "Swift",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "Swift"
+      ]
+    },
+    {
+      "id": "Kotlin",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "Kotlin"
+      ]
+    },
+    {
+      "id": "Scala",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "Scala"
+      ]
+    },
+    {
+      "id": "R",
+      "category": "language",
+      "aliases": [
+        "r language",
+        "r programming",
+        "rstats"
+      ],
+      "github_languages": [
+        "R"
+      ]
+    },
+    {
+      "id": "Dart",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "Dart"
+      ]
+    },
+    {
+      "id": "Perl",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "Perl"
+      ]
+    },
+    {
+      "id": "MATLAB",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "MATLAB"
+      ]
+    },
+    {
+      "id": "Objective-C",
+      "category": "language",
+      "aliases": [
+        "objc"
+      ],
+      "github_languages": [
+        "Objective-C"
+      ]
+    },
+    {
+      "id": "Solidity",
+      "category": "language",
+      "aliases": [],
+      "github_languages": [
+        "Solidity"
+      ]
+    },
+    {
+      "id": "Bash",
+      "category": "language",
+      "aliases": [
+        "shell",
+        "shell scripting",
+        "shell script",
+        "bash scripting"
+      ],
+      "github_languages": [
+        "Shell"
+      ]
+    },
+    {
+      "id": "PowerShell",
+      "category": "language",
+      "aliases": [
+        "power shell"
+      ],
+      "github_languages": [
+        "PowerShell"
+      ]
+    },
+    {
+      "id": "HTML",
+      "category": "frontend",
+      "aliases": [
+        "html5",
+        "hypertext markup language"
+      ],
+      "github_languages": [
+        "HTML"
+      ]
+    },
+    {
+      "id": "CSS",
+      "category": "frontend",
+      "aliases": [
+        "css3",
+        "cascading style sheets"
+      ],
+      "github_languages": [
+        "CSS"
+      ]
+    },
+    {
+      "id": "Sass",
+      "category": "frontend",
+      "aliases": [
+        "scss",
+        "sass/scss"
+      ],
+      "github_languages": [
+        "SCSS",
+        "Sass"
+      ]
+    },
+    {
+      "id": "React",
+      "category": "frontend",
+      "aliases": [
+        "reactjs",
+        "react js"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Angular",
+      "category": "frontend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Vue.js",
+      "category": "frontend",
+      "aliases": [
+        "vue",
+        "vuejs"
+      ],
+      "github_languages": [
+        "Vue"
+      ]
+    },
+    {
+      "id": "Svelte",
+      "category": "frontend",
+      "aliases": [],
+      "github_languages": [
+        "Svelte"
+      ]
+    },
+    {
+      "id": "Next.js",
+      "category": "frontend",
+      "aliases": [
+        "nextjs"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "jQuery",
+      "category": "frontend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Redux",
+      "category": "frontend",
+      "aliases": [
+        "redux toolkit"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Tailwind CSS",
+      "category": "frontend",
+      "aliases": [
+        "tailwind"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Bootstrap",
+      "category": "frontend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Webpack",
+      "category": "frontend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Vite",
+      "category": "frontend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Node.js",
+      "category": "backend",
+      "aliases": [
+        "nodejs",
+        "node js",
+        "node"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Express.js",
+      "category": "backend",
+      "aliases": [
+        "express",
+        "expressjs"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "NestJS",
+      "category": "backend",
+      "aliases": [
+        "nest.js"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Django",
+      "category": "backend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Flask",
+      "category": "backend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "FastAPI",
+      "category": "backend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Spring Boot",
+      "category": "backend",
+      "aliases": [
+        "springboot"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Spring Framework",
+      "category": "backend",
+      "aliases": [
+        "spring"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": ".NET",
+      "category": "backend",
+      "aliases": [
+        "dotnet",
+        ".net core",
+        "dotnet core",
+        ".net framework"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "ASP.NET",
+      "category": "backend",
+      "aliases": [
+        "asp net",
+        "asp.net core",
+        "asp.net mvc"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Ruby on Rails",
+      "category": "backend",
+      "aliases": [
+        "rails",
+        "ror",
+        "ruby rails"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Laravel",
+      "category": "backend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "GraphQL",
+      "category": "backend",
+      "aliases": [],
+      "github_languages": [
+        "GraphQL"
+      ]
+    },
+    {
+      "id": "gRPC",
+      "category": "backend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "WebSockets",
+      "category": "backend",
+      "aliases": [
+        "websocket",
+        "web sockets"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "OAuth",
+      "category": "backend",
+      "aliases": [
+        "oauth2",
+        "oauth 2.0"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Apache Kafka",
+      "category": "backend",
+      "aliases": [
+        "kafka"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "RabbitMQ",
+      "category": "backend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "SQL",
+      "category": "database",
+      "aliases": [
+        "structured query language",
+        "sql queries"
+      ],
+      "github_languages": [
+        "SQL",
+        "TSQL",
+        "PLpgSQL",
+        "PLSQL"
+      ]
+    },
+    {
+      "id": "MySQL",
+      "category": "database",
+      "aliases": [
+        "my sql"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "PostgreSQL",
+      "category": "database",
+      "aliases": [
+        "postgres",
+        "postgre sql"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "SQLite",
+      "category": "database",
+      "aliases": [
+        "sqlite3"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "MongoDB",
+      "category": "database",
+      "aliases": [
+        "mongo",
+        "mongo db"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Redis",
+      "category": "database",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Microsoft SQL Server",
+      "category": "database",
+      "aliases": [
+        "sql server",
+        "mssql",
+        "ms sql",
+        "ms sql server"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Oracle Database",
+      "category": "database",
+      "aliases": [
+        "oracle db",
+        "oracledb"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "DynamoDB",
+      "category": "database",
+      "aliases": [
+        "amazon dynamodb",
+        "aws dynamodb",
+        "dynamo db"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Elasticsearch",
+      "category": "database",
+      "aliases": [
+        "elastic search"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Firebase",
+      "category": "database",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Snowflake",
+      "category": "database",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "BigQuery",
+      "category": "database",
+      "aliases": [
+        "google bigquery",
+        "big query"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Docker",
+      "category": "cloud_devops",
+      "aliases": [
+        "dockerfile"
+      ],
+      "github_languages": [
+        "Dockerfile"
+      ]
+    },
+    {
+      "id": "Kubernetes",
+      "category": "cloud_devops",
+      "aliases": [
+        "k8s",
+        "kube"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "AWS",
+      "category": "cloud_devops",
+      "aliases": [
+        "amazon web services",
+        "amazon aws"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Amazon S3",
+      "category": "cloud_devops",
+      "aliases": [
+        "s3",
+        "aws s3"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Amazon EC2",
+      "category": "cloud_devops",
+      "aliases": [
+        "ec2",
+        "aws ec2"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "AWS Lambda",
+      "category": "cloud_devops",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Azure",
+      "category": "cloud_devops",
+      "aliases": [
+        "microsoft azure",
+        "azure cloud"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Google Cloud Platform",
+      "category": "cloud_devops",
+      "aliases": [
+        "gcp",
+        "google cloud"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "CI/CD",
+      "category": "cloud_devops",
+      "aliases": [
+        "ci cd",
+        "continuous integration",
+        "continuous delivery",
+        "continuous deployment"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "GitHub Actions",
+      "category": "cloud_devops",
+      "aliases": [
+        "github action",
+        "gh actions"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "GitLab CI",
+      "category": "cloud_devops",
+      "aliases": [
+        "gitlab ci/cd"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Jenkins",
+      "category": "cloud_devops",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Terraform",
+      "category": "cloud_devops",
+      "aliases": [
+        "hashicorp terraform"
+      ],
+      "github_languages": [
+        "HCL"
+      ]
+    },
+    {
+      "id": "Ansible",
+      "category": "cloud_devops",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Nginx",
+      "category": "cloud_devops",
+      "aliases": [
+        "engine x"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Linux",
+      "category": "cloud_devops",
+      "aliases": [
+        "gnu/linux"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "DevOps",
+      "category": "cloud_devops",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Machine Learning",
+      "category": "data_ml",
+      "aliases": [
+        "ml"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Deep Learning",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Natural Language Processing",
+      "category": "data_ml",
+      "aliases": [
+        "nlp"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Computer Vision",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Large Language Models",
+      "category": "data_ml",
+      "aliases": [
+        "llm",
+        "llms"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Generative AI",
+      "category": "data_ml",
+      "aliases": [
+        "genai",
+        "gen ai",
+        "generative artificial intelligence"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "TensorFlow",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "PyTorch",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Keras",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "scikit-learn",
+      "category": "data_ml",
+      "aliases": [
+        "sklearn",
+        "scikit learn"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Hugging Face",
+      "category": "data_ml",
+      "aliases": [
+        "huggingface",
+        "hf transformers"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "LangChain",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Pandas",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "NumPy",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Matplotlib",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "OpenCV",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Apache Spark",
+      "category": "data_ml",
+      "aliases": [
+        "spark",
+        "pyspark"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Hadoop",
+      "category": "data_ml",
+      "aliases": [
+        "apache hadoop"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Apache Airflow",
+      "category": "data_ml",
+      "aliases": [
+        "airflow"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "dbt",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "ETL",
+      "category": "data_ml",
+      "aliases": [
+        "etl pipelines",
+        "extract transform load"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Jupyter Notebook",
+      "category": "data_ml",
+      "aliases": [
+        "jupyter",
+        "jupyter notebooks"
+      ],
+      "github_languages": [
+        "Jupyter Notebook"
+      ]
+    },
+    {
+      "id": "Tableau",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Power BI",
+      "category": "data_ml",
+      "aliases": [
+        "powerbi",
+        "microsoft power bi"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Data Analysis",
+      "category": "data_ml",
+      "aliases": [
+        "data analytics"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Data Visualization",
+      "category": "data_ml",
+      "aliases": [
+        "data visualisation"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Data Science",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Statistics",
+      "category": "data_ml",
+      "aliases": [
+        "statistical analysis"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Android",
+      "category": "mobile",
+      "aliases": [
+        "android development",
+        "android sdk"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "iOS",
+      "category": "mobile",
+      "aliases": [
+        "ios development"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "React Native",
+      "category": "mobile",
+      "aliases": [
+        "reactnative"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Flutter",
+      "category": "mobile",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Jest",
+      "category": "testing",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Pytest",
+      "category": "testing",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "JUnit",
+      "category": "testing",
+      "aliases": [
+        "junit5",
+        "junit 5"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Selenium",
+      "category": "testing",
+      "aliases": [
+        "selenium webdriver"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Cypress",
+      "category": "testing",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Playwright",
+      "category": "testing",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Unit Testing",
+      "category": "testing",
+      "aliases": [
+        "unit tests",
+        "unit test"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Test-Driven Development",
+      "category": "testing",
+      "aliases": [
+        "tdd",
+        "test driven development"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Git",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "GitHub",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "GitLab",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Jira",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Postman",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Figma",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Microsoft Excel",
+      "category": "tools",
+      "aliases": [
+        "excel",
+        "ms excel"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Maven",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "npm",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "OpenAPI",
+      "category": "tools",
+      "aliases": [
+        "swagger",
+        "swagger/openapi",
+        "openapi/swagger",
+        "open api"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "REST APIs",
+      "category": "concept",
+      "aliases": [
+        "rest",
+        "rest api",
+        "restful",
+        "restful api",
+        "restful apis",
+        "restful services"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Data Structures and Algorithms",
+      "category": "concept",
+      "aliases": [
+        "dsa",
+        "data structures & algorithms"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Object-Oriented Programming",
+      "category": "concept",
+      "aliases": [
+        "oop",
+        "oops",
+        "object oriented",
+        "object oriented programming"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Functional Programming",
+      "category": "concept",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Design Patterns",
+      "category": "concept",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "System Design",
+      "category": "concept",
+      "aliases": [
+        "systems design"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Microservices",
+      "category": "concept",
+      "aliases": [
+        "microservice",
+        "microservices architecture"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Multithreading",
+      "category": "concept",
+      "aliases": [
+        "multi threading",
+        "concurrent programming"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Operating Systems",
+      "category": "concept",
+      "aliases": [
+        "operating system"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Computer Networks",
+      "category": "concept",
+      "aliases": [
+        "computer networking"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Database Management Systems",
+      "category": "concept",
+      "aliases": [
+        "dbms"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Cloud Computing",
+      "category": "concept",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Cybersecurity",
+      "category": "concept",
+      "aliases": [
+        "cyber security",
+        "information security",
+        "infosec"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Blockchain",
+      "category": "concept",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Agile",
+      "category": "concept",
+      "aliases": [
+        "agile methodology",
+        "agile methodologies"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Scrum",
+      "category": "concept",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Artificial Intelligence",
+      "category": "concept",
+      "aliases": [
+        "ai"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "NoSQL",
+      "category": "database",
+      "aliases": [
+        "no sql",
+        "nosql databases"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Streamlit",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "SciPy",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Seaborn",
+      "category": "data_ml",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Docker Compose",
+      "category": "cloud_devops",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Hibernate",
+      "category": "backend",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "MariaDB",
+      "category": "database",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Apache Cassandra",
+      "category": "database",
+      "aliases": [
+        "cassandra"
+      ],
+      "github_languages": []
+    },
+    {
+      "id": "Neo4j",
+      "category": "database",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Helm",
+      "category": "cloud_devops",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Prometheus",
+      "category": "cloud_devops",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Grafana",
+      "category": "cloud_devops",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Gradle",
+      "category": "tools",
+      "aliases": [],
+      "github_languages": []
+    },
+    {
+      "id": "Mocha",
+      "category": "testing",
+      "aliases": [],
+      "github_languages": []
+    }
+  ]
+}
