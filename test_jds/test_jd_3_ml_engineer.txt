@@ -1,0 +1,19 @@
+Machine Learning Engineer - Recommendations
+
+Join the team that builds the models behind our product recommendations.
+
+Must have
+- Python is required for all modelling work.
+- You must have experience with PyTorch.
+- scikit-learn and pandas are essential.
+- Strong Git skills are required.
+- You must understand machine learning fundamentals.
+
+Nice to have
+- Docker is a plus.
+- Experience with MLflow is a bonus.
+- Knowledge of Pydantic is preferred.
+- Familiarity with AWS is nice to have.
+- Experience with FastAPI would be a plus.
+
+You will own models from experiment to production together with the data engineers.

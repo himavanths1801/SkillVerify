@@ -1,0 +1,18 @@
+Software Engineer, Platform Team
+
+We are a friendly company looking for a curious engineer who loves solving hard problems.
+You are a great communicator, a team player and a fast learner. A bachelor's degree is helpful.
+
+Day to day you will work with Python (advanced), JavaScript (ES6), React and Node.js.
+Our data lives in MySQL and MongoDB, and we deploy with Docker on AWS.
+We also use HTML/CSS for internal tools, plus Jenkins, Linux and some Rust.
+
+No experience with machine learning is needed, but we like people who have tried TensorFlow.
+Strong problem solving skills and 3 years of experience in a similar role are expected.
+
+The team also touches Terraform, Redis and Kafka now and then, though nobody owns them.
+Some of us write Go for small command line tools; others prefer shell scripts.
+Our internal dashboards are built with a framework called Zorbify, which we will teach you.
+
+Interview process: a short call, a take-home exercise and a conversation with the team.
+We value honesty, kindness and clear writing. Relocation help is available.

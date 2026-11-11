@@ -1,0 +1,18 @@
+Junior Data Analyst - Retail Analytics Team
+
+About the role
+You will turn sales and customer data into dashboards and weekly insights for our category managers.
+
+What you must bring (required)
+- Strong SQL: joins, window functions and CTEs are required.
+- Python (pandas) for cleaning and analysing data is mandatory.
+- You must have hands-on experience building dashboards in Tableau.
+- Good working knowledge of Excel is required.
+
+Nice to have
+- Experience with Looker is a plus.
+- Familiarity with Git is a bonus.
+- Exposure to Snowflake is preferred.
+- Basic knowledge of statistics is a plus.
+
+You will work closely with the business team and present your findings clearly.

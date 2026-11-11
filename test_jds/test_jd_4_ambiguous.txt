@@ -1,0 +1,13 @@
+Software Developer - Growing Startup
+
+We are a friendly, fast moving team looking for a developer who loves building things.
+
+About you
+- You are a great communicator and a team player.
+- You have around 3 years of experience and a degree in computer science.
+- You know Python (advanced) and JavaScript, and have worked with React.
+- You have used Docker, MySQL, Git and some cloud tools.
+- Experience with GraphQL, Jenkins, Elasticsearch and Figma is helpful.
+- You enjoy solving problems and learning quickly.
+
+We offer flexible hours, free lunch and a learning budget.

@@ -1,0 +1,19 @@
+Backend Engineer - Payments Platform
+
+You will design and run the services that process millions of payments a day.
+
+Requirements (must have)
+- Java is required; you must be comfortable with Spring Boot.
+- Solid experience with PostgreSQL is essential.
+- You must know Docker and have shipped containerised services.
+- Experience with REST APIs is required.
+- Working knowledge of AWS is mandatory.
+
+Preferred / bonus
+- Kubernetes experience is a plus.
+- Apache Kafka is nice to have.
+- Familiarity with Redis is a bonus.
+- Terraform is preferred.
+- Experience with Datadog is a plus.
+
+We value clean code, code reviews and a strong testing culture.

@@ -1,0 +1,20 @@
+Backend Developer (Python)
+Helio Payments, Chennai
+
+You will design and run the services behind our payments API.
+
+What you must have
+- You must have 2+ years of professional Python, ideally with FastAPI or Flask
+- You have built REST APIs and understand authentication with OAuth
+- Hands-on with PostgreSQL and Redis in production
+- Comfortable with Docker and CI/CD pipelines (GitHub Actions)
+
+Bonus points
+- Bonus: Kubernetes experience, or at least familiarity with Helm charts
+- Familiarity with Apache Kafka or RabbitMQ for event-driven systems
+- Experience with Terraform is a plus
+- Knowledge of Go would be nice
+
+Mandatory for this role: unit testing with Pytest, and Git for daily work.
+
+Our stack also includes a few in-house tools you will learn on the job, such as Zephyrine, our internal deployment scheduler.

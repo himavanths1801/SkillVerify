@@ -1,0 +1,21 @@
+Data Analyst, Customer Insights
+Northwind Analytics, Bengaluru (hybrid)
+
+About the role
+You will turn raw customer and sales data into dashboards and decisions for the product team.
+
+Required skills
+- Strong SQL: joins, window functions and query tuning on PostgreSQL
+- Python for data analysis, using Pandas and NumPy
+- Experience building dashboards in Tableau or Power BI
+- Solid statistics: hypothesis testing and regression
+- Working knowledge of Git
+
+Nice to have
+- Familiarity with Apache Airflow for scheduling pipelines
+- Experience with scikit-learn for simple predictive models
+- Exposure to AWS (S3 or Redshift) is a plus
+- Docker for packaging small data tools
+
+What we offer
+Mentoring, a learning budget and flexible hours. You should communicate clearly and enjoy working in a small team.

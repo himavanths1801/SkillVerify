@@ -1,0 +1,26 @@
+Python Backend Developer - Platform Team
+
+About the role
+We are looking for a backend developer to build and maintain the web services behind our platform. You will work in a small team, review code, and ship changes often.
+
+Required skills (must have)
+- Strong Python programming
+- Experience building web services with Flask
+- Working knowledge of SQLAlchemy and relational database design
+- Good SQL skills
+- Experience packaging and running services with Docker
+- Version control with Git
+- Designing and consuming REST APIs
+
+Nice to have
+- Writing automated tests with pytest
+- Experience with Redis
+- Comfort working on Linux and writing Bash scripts
+
+What you will do
+- Build new endpoints and keep existing ones reliable.
+- Design database tables and write migrations.
+- Review teammates' code and improve test coverage.
+
+Who you are
+You write clear code, ask good questions and like small, steady improvements.
