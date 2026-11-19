@@ -48,3 +48,4 @@ Thumbs.db
 
 # --- Web design previews (regenerable with web/scripts/screenshots-*.mjs; three are kept in docs/screenshots/) ---
 web/preview-*.png
+api/_data/
