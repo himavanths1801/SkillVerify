@@ -1,9 +1,9 @@
-"""ModelChain: which Gemini model the next run should use. In memory, thread-safe, one shared instance per server."""
+"""ModelChain: which model (Gemini, or Groq as "groq:<id>") the next run should use. In memory, thread-safe, one shared instance per server."""
 import math
 import os
 import threading
 import time
-from typing import Callable, Optional, Sequence
+from typing import Callable, Collection, Mapping, Optional, Sequence
 
 from dotenv import load_dotenv
 
@@ -19,8 +19,10 @@ class ModelChain:
     reads the ``.env`` file).
     """
 
-    def __init__(self, models: Optional[Sequence[str]] = None, clock: Callable[[], float] = time.monotonic) -> None:
+    def __init__(self, models: Optional[Sequence[str]] = None, clock: Callable[[], float] = time.monotonic,
+                 loader: Callable[[Mapping[str, str]], tuple[str, ...]] = settings.load_model_chain) -> None:
         self._models = tuple(models) if models is not None else None
+        self._loader = loader
         self._clock = clock
         self._lock = threading.Lock()
         self._cool_until: dict[str, float] = {}
@@ -36,28 +38,39 @@ class ModelChain:
         """The lock is held by the caller."""
         if self._models is None:
             load_dotenv()  # real environment variables win over the .env file
-            self._models = settings.load_model_chain(os.environ)
+            self._models = self._loader(os.environ)
         return self._models
 
     def _left(self, model: str, now: float) -> tuple[float, float]:
         return (max(0.0, self._cool_until.get(model, 0.0) - now),
                 max(0.0, self._unavailable_until.get(model, 0.0) - now))
 
-    def pick(self) -> Optional[str]:
-        """The first model that is neither cooling down nor unavailable, or None."""
+    def pick(self, skip: Collection[str] = ()) -> Optional[str]:
+        """The first model that is neither cooling down nor unavailable (and not in ``skip``), or None."""
         with self._lock:
             now = self._clock()
             for model in self._chain():
-                if self._left(model, now) == (0.0, 0.0):
+                if model not in skip and self._left(model, now) == (0.0, 0.0):
                     return model
             return None
 
-    def mark_rate_limited(self, model: str) -> None:
+    def mark_rate_limited(self, model: str, retry_after: Optional[float] = None) -> None:
+        """Rest a model: 120 s, or 1800 s when its previous outcome was also a limit. A ``retry_after`` (seconds the
+        provider asked for) is used instead when it is shorter than that default."""
         with self._lock:
             repeated = self._limits_in_a_row.get(model, 0) >= 1
             seconds = settings.REPEATED_LIMIT_COOLDOWN_SECONDS if repeated else settings.RATE_LIMIT_COOLDOWN_SECONDS
+            if retry_after is not None and max(retry_after, 1.0) < seconds:
+                seconds = max(retry_after, 1.0)
             self._limits_in_a_row[model] = self._limits_in_a_row.get(model, 0) + 1
             self._cool_until[model] = self._clock() + seconds
+
+    def wait_seconds(self, skip: Collection[str] = ()) -> Optional[float]:
+        """Seconds until the first entry (not in ``skip``) is ready again, or None when there is no such entry."""
+        with self._lock:
+            now = self._clock()
+            waits = [max(self._left(model, now)) for model in self._chain() if model not in skip]
+            return min(waits) if waits else None
 
     def mark_success(self, model: str) -> None:
         with self._lock:

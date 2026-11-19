@@ -76,48 +76,47 @@ def state(world, model):
 
 
 # --------------------------------------------------------------------------
-# the next run uses the next model (retry button AND analyze again)
+# a limit rests the model and the SAME run hands over to the next one
 # --------------------------------------------------------------------------
-def test_a_rate_limit_marks_the_model_and_retry_uses_the_next_one(world, fleet):
+def test_a_rate_limit_rests_the_model_and_the_same_run_hands_over(world, fleet):
     fleet.fail("model-a", LIMIT)
-    first = world.run()
-    assert first["state"] == "failed" and first["error"]["code"] == "ai_rate_limited"
-    assert first["error"] == {"code": "ai_rate_limited", "message": errors.MESSAGES["ai_rate_limited"],
-                              "retryable": True, "fallback_available": True}
-    assert first["meta"]["model"] == "model-a" and first["meta"]["fallback_used"] is False
+    job = world.run()
+    assert job["state"] == "done" and job["error"] is None
+    assert job["meta"]["model"] == "model-b" and job["meta"]["fallback_used"] is True
     assert state(world, "model-a") == "cooling_down"
-
-    second = retry_job(world, first["id"])
-    assert second["state"] == "done" and second["error"] is None
-    assert second["meta"]["model"] == "model-b" and second["meta"]["fallback_used"] is True
-    assert fleet.built == ["model-a", "model-b"]
+    assert fleet.calls() == {"model-a": 1, "model-b": 2, "model-c": 0}  # the JD call moved on, the CV call went to b
+    assert fleet.built == ["model-a", "model-b", "model-b"]
 
 
-def test_analyzing_again_behaves_the_same_as_retry(world, fleet):
+def test_analyzing_again_starts_on_the_next_ready_model(world, fleet):
     fleet.fail("model-a", LIMIT)
-    assert world.run()["error"]["code"] == "ai_rate_limited"
-    fresh = world.run()  # a new POST, not the retry route
+    assert world.run()["state"] == "done"
+    fresh = world.run()  # a new POST: model-a is still resting, so nothing is even tried on it
     assert fresh["state"] == "done"
     assert fresh["meta"]["model"] == "model-b" and fresh["meta"]["fallback_used"] is True
+    assert fleet.calls()["model-a"] == 1
 
 
-def test_each_press_moves_further_along_the_chain(world, fleet):
-    fleet.fail("model-a", LIMIT)
-    fleet.fail("model-b", LIMIT)
-    one = world.run()
-    two = retry_job(world, one["id"])
-    assert two["error"]["code"] == "ai_rate_limited" and two["error"]["fallback_available"] is True
-    assert two["meta"]["model"] == "model-b"
-    three = retry_job(world, one["id"])
-    assert three["state"] == "done" and three["meta"]["model"] == "model-c"
-    assert fleet.built == ["model-a", "model-b", "model-c"]
+def test_every_model_limited_ends_the_run_and_a_later_try_works_once_they_have_rested(world, fleet, clock):
+    for name in CHAIN:
+        fleet.fail(name, LIMIT)
+    first = world.run()
+    assert first["error"] == {"code": "ai_rate_limited", "message": errors.MESSAGES["ai_rate_limited"],
+                              "retryable": True, "fallback_available": False}
+    assert fleet.calls() == {"model-a": 1, "model-b": 1, "model-c": 1}  # each model once, then it ended
+    for name in CHAIN:
+        fleet.fail(name, None)
+    assert retry_job(world, first["id"])["error"]["code"] == "ai_all_limited"  # nothing is ready yet
+    clock.now += api_settings.RATE_LIMIT_COOLDOWN_SECONDS
+    second = retry_job(world, first["id"])
+    assert second["state"] == "done" and second["meta"]["model"] == "model-a"
 
 
 def test_the_last_model_limited_says_no_backup_is_left(world, fleet):
-    for name in CHAIN:
-        fleet.fail(name, LIMIT)
-    runs = [world.run() for _ in range(3)]
-    assert [r["error"]["fallback_available"] for r in runs] == [True, True, False]
+    fleet.fail("model-a", LIMIT)
+    fleet.fail("model-b", LIMIT)
+    fleet.fail("model-c", LIMIT)
+    assert world.run()["error"]["fallback_available"] is False
 
 
 # --------------------------------------------------------------------------
@@ -167,20 +166,23 @@ def test_a_second_limit_without_a_success_rests_longer_and_success_resets(world,
 
 
 # --------------------------------------------------------------------------
-# one model per run
+# each document is read by the first ready model
 # --------------------------------------------------------------------------
-def test_one_run_uses_one_model_for_both_parsers(world, fleet):
+def test_both_documents_go_to_the_first_ready_model(world, fleet):
     fleet.fail("model-a", LIMIT)
     world.run()
     job = world.run()
-    assert fleet.calls() == {"model-a": 1, "model-b": 2, "model-c": 0}  # JD and CV both went to model-b
-    assert fleet.built.count("model-b") == 1 and job["meta"]["model"] == "model-b"
+    assert fleet.calls() == {"model-a": 1, "model-b": 4, "model-c": 0}
+    assert job["meta"]["model"] == "model-b"
 
 
-def test_a_limit_on_the_cv_call_still_counts_for_the_run_model(world, fleet):
+def test_a_limit_on_the_cv_call_hands_that_call_over_and_rests_the_model(world, fleet):
     fleet.fail("model-a", None, cv_error=LIMIT)
     job = world.run()
-    assert job["error"]["code"] == "ai_rate_limited" and state(world, "model-a") == "cooling_down"
+    assert job["state"] == "done" and state(world, "model-a") == "cooling_down"
+    assert job["meta"]["readers"] == {"jd": {"model": "model-a", "cached": False},
+                                      "cv": {"model": "model-b", "cached": False}}
+    assert job["meta"]["fallback_used"] is True
 
 
 # --------------------------------------------------------------------------
@@ -191,7 +193,7 @@ def test_a_404_on_the_first_call_switches_models_within_the_run(world, fleet):
     job = world.run()
     assert job["state"] == "done" and job["error"] is None
     assert job["meta"]["model"] == "model-b" and job["meta"]["fallback_used"] is True
-    assert fleet.built == ["model-a", "model-b"] and fleet.calls() == {"model-a": 1, "model-b": 2, "model-c": 0}
+    assert fleet.built == ["model-a", "model-b", "model-b"] and fleet.calls() == {"model-a": 1, "model-b": 2, "model-c": 0}
     assert state(world, "model-a") == "unavailable"
     assert world.chain.pick() == "model-b"
 
@@ -205,26 +207,32 @@ def test_when_every_model_is_unknown_the_run_fails_with_all_limited_after_one_tr
     assert [row["state"] for row in world.chain.snapshot()] == ["unavailable"] * 3
 
 
-def test_a_404_after_the_first_call_is_still_the_old_configuration_error(world, fleet):
+def test_a_404_after_the_model_has_answered_is_still_the_old_configuration_error(world, fleet):
     fleet.fail("model-a", None, cv_error=NOT_FOUND)
     job = world.run()
     assert job["error"]["code"] == "ai_not_configured"
     assert [row["state"] for row in world.chain.snapshot()] == ["ready"] * 3
 
 
-def test_a_429_after_a_404_switch_marks_the_model_that_was_limited(world, fleet):
+def test_a_429_after_a_404_switch_rests_the_model_that_was_limited_and_the_third_reads(world, fleet):
     fleet.fail("model-a", NOT_FOUND)
     fleet.fail("model-b", LIMIT)
     job = world.run()
-    assert job["error"]["code"] == "ai_rate_limited" and job["meta"]["model"] == "model-b"
+    assert job["state"] == "done" and job["meta"]["model"] == "model-c"
     assert [row["state"] for row in world.chain.snapshot()] == ["unavailable", "cooling_down", "ready"]
-    assert job["error"]["fallback_available"] is True
 
 
 # --------------------------------------------------------------------------
 # other errors leave the chain alone
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("error, code", [(BUSY, "ai_busy"), (BAD_KEY, "ai_not_configured"),
+def test_a_busy_model_is_rested_and_the_next_one_reads(world, fleet):
+    fleet.fail("model-a", BUSY)
+    job = world.run()
+    assert job["state"] == "done" and job["meta"]["model"] == "model-b"
+    assert state(world, "model-a") == "cooling_down"
+
+
+@pytest.mark.parametrize("error, code", [(BAD_KEY, "ai_not_configured"),
                                           (LLMCallError("Gemini's answer was not valid JSON."), "internal_error")])
 def test_other_errors_do_not_change_any_model_state(world, fleet, error, code):
     fleet.fail("model-a", error)
@@ -265,14 +273,18 @@ def test_result_is_exactly_score_candidate_whatever_model_ran(world, fleet):
     assert "model" not in job["result"] and "fallback_used" not in job["result"]
 
 
-def test_meta_keeps_the_model_after_done_and_is_replaced_by_a_retry(world, fleet):
-    fleet.fail("model-a", LIMIT)
+def test_meta_keeps_the_model_after_done_and_is_replaced_by_a_retry(world, fleet, clock):
+    for name in CHAIN:
+        fleet.fail(name, LIMIT)
     first = world.run()
-    assert world.client.request("GET", f"/api/analyses/{first['id']}").json()["meta"]["model"] == "model-a"
+    assert first["state"] == "failed"
+    for name in CHAIN:
+        fleet.fail(name, None)
+    clock.now += api_settings.RATE_LIMIT_COOLDOWN_SECONDS
     second = retry_job(world, first["id"])
-    assert second["meta"]["model"] == "model-b"
+    assert second["meta"]["model"] == "model-a"
     again = world.client.request("GET", f"/api/analyses/{first['id']}").json()
-    assert again["meta"]["model"] == "model-b" and again["meta"]["fallback_used"] is True
+    assert again["meta"]["model"] == "model-a" and again["meta"]["fallback_used"] is False
 
 
 def test_health_shows_the_chain_and_states_and_no_key_text(world, fleet, monkeypatch):

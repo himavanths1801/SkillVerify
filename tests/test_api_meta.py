@@ -92,14 +92,18 @@ def test_meta_is_null_while_running_and_filled_after_done(make_env):
     deadline = time.time() + 5
     while time.time() < deadline and env.client.request("GET", f"/api/analyses/{job_id}").json()["state"] != "running":
         time.sleep(0.01)
+    while time.time() < deadline and env.client.request("GET", f"/api/analyses/{job_id}").json()["meta"]["model"] is None:
+        time.sleep(0.01)  # the first model is picked a moment after the job starts running
     running = env.client.request("GET", f"/api/analyses/{job_id}").json()
     assert running["meta"] == {"candidate_name": None, "job_title": None, "model": "model-a", "fallback_used": False,
-                               "scan": None, "timings": {}}
+                               "scan": None, "timings": {}, "readers": {"jd": {"model": "model-a", "cached": False},
+                                                                          "cv": None}}
     gate.set()
     done = env.wait(job_id)
     assert done["state"] == "done"
     assert {k: v for k, v in done["meta"].items() if k not in ("scan", "timings")} == {
-        "candidate_name": "Priya Sample", "job_title": "Data Analyst", "model": "model-a", "fallback_used": False}
+        "candidate_name": "Priya Sample", "job_title": "Data Analyst", "model": "model-a", "fallback_used": False,
+        "readers": {"jd": {"model": "model-a", "cached": False}, "cv": {"model": "model-a", "cached": False}}}
     assert "Scoring" in done["meta"]["timings"]
 
 
@@ -135,7 +139,8 @@ def test_meta_is_reset_by_a_retry_and_ignored_for_a_stale_attempt(make_env):
     manager = env.manager
     snap = manager.snapshot(job["id"])
     assert {k: v for k, v in snap["meta"].items() if k != "timings"} == {
-        "candidate_name": None, "job_title": None, "model": "model-a", "fallback_used": False, "scan": None}
+        "candidate_name": None, "job_title": None, "model": "model-a", "fallback_used": False, "scan": None,
+        "readers": {"jd": {"model": "model-a", "cached": False}, "cv": None}}
     # a late write from an attempt that is no longer running changes nothing
     with manager._lock:
         stored = manager._jobs[job["id"]]

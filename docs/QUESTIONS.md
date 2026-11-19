@@ -188,9 +188,10 @@ text. `reference_notes` is unchanged and recruiter-only. `schema_version` stays 
 
 ## Dropped questions in the result
 
-`result.dropped` is `[{skill, tier, repo, path, attempts, reasons}]`: metadata and codes only, never code, question text
+`result.dropped` is `[{skill, tier, repo, path, attempts, reasons, causes}]`: metadata and codes only, never code, question text
 or model output. `attempts` is 1 or 2; `reasons` holds the codes of the FINAL failed attempt, then the first attempt's
-codes if different, without duplicates. `counts.dropped` equals the length of the list. The reason codes are a closed
+codes if different, without duplicates. `causes` (additive) names why a `bad_json` answer was unusable, from the
+closed set `config.ANSWER_CAUSES` (see "Bad JSON and file matching"). `counts.dropped` equals the length of the list. The reason codes are a closed
 set (`config.DROP_REASON_CODES`), each mapped from the failed check:
 
 | Code | Checks |
@@ -209,8 +210,111 @@ set (`config.DROP_REASON_CODES`), each mapped from the failed check:
 `skipped_skills` lists only skills that ended with ZERO questions. A skill that has a question and also a dropped attempt
 appears only in `dropped`; a skill whose attempts all failed keeps `question_failed` in `skipped_skills` and has its
 `dropped` entries. Each drop writes one log line with codes only, for example
-`question dropped skill=SQL reasons=unknown_sql_name`. The replace route returns the same `dropped` list for its own
+`question dropped skill=SQL reasons=unknown_sql_name causes=none`. The replace route returns the same `dropped` list for its own
 failed attempts (also as `error.dropped` of a `409 no_replacement_available`).
+
+## Bad JSON and file matching
+
+A live run for a candidate with 7 repos wrote 1 question (`too_few`): all 7 other questions were dropped as `bad_json`
+after 2 attempts, the files did not always fit the skill (Flask from `app.js`, CSS from `cleaning.py`, an HTML question
+from a Python file), and the review screen said "Only 1 question(s)" while it showed 2. This section is what was found
+(read-only, before any change) and what was changed. Nothing in the locked logic changed: filter then rank, no AI in
+file selection, the model only writes the question, system checks, one repair attempt, then drop, reuse the scan.
+`schema_version` stays 1; every new field is additive.
+
+### What was found (Step 0)
+
+- **Where an answer is parsed.** The model's reply text was parsed by the provider itself: the frozen
+  `GeminiProvider._parse_answer` and `GroqProvider._parse_answer` each did a strict `json.loads` and raised an
+  `LLMCallError` ("... returned no usable answer", "... answer was not valid JSON", "... JSON but not an object").
+  `writer.write_question` treats an error whose text matches `_ANSWER_SHAPE` as the check `invalid_json`; `writer.check`
+  adds `invalid_json` (the answer is not an object), `wrong_types` (a required field is missing or the wrong type, or
+  more than 8 symbols) and `kind_invalid`. All three checks map to the drop code `bad_json`, so `bad_json` hid at least
+  four different causes (nothing returned, cut off, prose or fences around the object, wrong shape).
+- **The Groq request body.** `model`, `messages`, `temperature: 0` and `response_format: {"type": "json_object"}` (JSON
+  mode). **No output cap and no reasoning setting were sent**, so Groq's own defaults applied. An empty `content` was
+  "no usable answer"; a cut-off reply was just broken JSON ("not valid JSON"): `finish_reason` was ignored, so a cut-off
+  could not be told from garbage. `gpt-oss-120b` is a reasoning model and its reasoning tokens count against the output
+  limit, which is a plausible cause of empty or cut-off replies; this is NOT proven (no live call is made here), which is
+  why this step only makes the cause visible.
+- **Which model the repair used.** The same one: a run kept one current model (`_RunProvider.model`) and only changed it
+  when a call failed, so the repair attempt asked the model that had just failed the checks.
+- **How a skill is matched to files.** `select.rank_for_skill` asks `Signals.count(skill, language, text)`: the file's
+  language, the skill's import lines, and a whole-word match of the skill name or a longer alias in the code (comments
+  removed). Strings count, so `"Flask"` inside `app.js` or `"CSS"` inside `cleaning.py` made those files candidates.
+  The extension was only used to pick the language (`files.language_of`), never to ask whether the file can show the
+  skill.
+
+### Fix 1: tolerant parsing and a safe cause for every bad answer
+
+`skillverify_questions/answer.py` reads a reply the same way for Groq and for the Gemini provider the question writer
+uses (`gemini_questions.QuestionGemini`, the frozen provider with only its reply reading replaced; the reading chain keeps
+the plain one). Plain code, no `eval`, nothing repaired beyond this:
+
+1. surrounding code fences (three backticks, with or without `json`) are removed;
+2. a text that is JSON as a whole is used as it is (an object is the answer; a top-level array or scalar is
+   `wrong_shape`);
+3. otherwise the text before the first `{` is dropped and the first balanced `{...}` (strings and escapes respected) is
+   parsed.
+
+If that still fails, the cause is one of a closed set (`config.ANSWER_CAUSES`):
+
+| Cause | When |
+|---|---|
+| `empty_response` | the provider returned no text |
+| `cut_off` | the provider said the output limit was reached (Groq `finish_reason: "length"`, Gemini `finishReason: "MAX_TOKENS"`) and nothing usable came, or the braces never balance |
+| `not_json` | text without a JSON object (or a balanced `{...}` that is not JSON) |
+| `wrong_shape` | JSON, but not an object, or a required field is missing or has the wrong type (also `kind` not `write_code` or `fix_code`) |
+
+A complete object is used even if the provider said the limit was reached. The error messages keep the words the writer
+already recognises, so an unusable reply is still a repairable `bad_json`.
+
+`result.dropped[]` entries keep `reasons` (the code stays `bad_json`) and gain `causes`: the codes of the final failed
+attempt, then the first attempt's if different, no duplicates (an empty list when the drop was not about the answer's
+shape). The drop log line gains them: `question dropped skill=Python reasons=bad_json causes=cut_off` (`causes=none` when
+empty). Only codes are logged and saved, never the reply.
+
+**Output cap.** `QUESTIONS_MAX_OUTPUT_TOKENS` (range 500 to 8000) is sent to Groq as `max_completion_tokens`, the
+documented cap. The prompt said the default should be "the value used today"; today **nothing** is sent, so the default
+is `0`, meaning "send no cap" (Groq's own default, exactly as before). A missing value is `0`; a non-numeric or
+out-of-range value is also `0` with one plain log line that names the setting and never shows the value. It is shown
+under `limits` in `GET /api/health`. JSON mode (`response_format: json_object`) was already used: Groq's documentation
+lists it for `openai/gpt-oss-120b` (read from the documentation, not checked live). Groq's documentation also lists a
+`reasoning_effort` setting (`low`, `medium`, `high`) for the gpt-oss models; it is NOT sent and no default was raised:
+if drops show `causes=cut_off` or `empty_response`, that and a higher cap are the two things to try, with evidence.
+
+### Fix 2: the repair goes to a different model
+
+When the first attempt for a question fails a check (including `bad_json`), the single repair attempt goes to a
+different chain entry than the first attempt whenever another entry is ready (not resting). Only when no other entry is
+ready does it use the same one. The next question starts on the first ready entry again. This is not a handover (nothing
+failed), so `meta.fallbacks` does not change; handover, pacing and rests from the previous build are unchanged (a repair
+call that hits a limit hands over like any call). `meta.models_used` counts the model that wrote the final accepted
+question. One log line per repair elsewhere: `repair on another model from=<a> to=<b>` (model names only).
+
+### Fix 3: skills only match files they can show
+
+`config.SKILL_EXTENSIONS` maps a skill name (lower case, as in the taxonomy) to the extensions of files that can show it
+(for example `flask` to `.py`; `react` to `.jsx .tsx .js .ts`; `html` to `.html .htm .jsx .tsx .vue .svelte .ejs`).
+`signals.extension_allowed(skill, path)` is the plain check; `select.rank_for_skill` applies it, so a file whose
+extension is not allowed is not a candidate for that skill (and never reaches the model, not even as a reserve). A skill
+with no remaining file is skipped with the existing reason `no_usable_file`.
+
+**Skills that are not in the map are unrestricted**, exactly as before: the map is deliberately conservative (a wrong
+entry would hide real evidence), SQL keeps its own rules, and a new skill needs an entry only when there is evidence of
+the problem. `python`, `pandas` and `numpy` also allow `.ipynb`, because notebooks are where that work usually lives and
+the file filter already treats a notebook as Python. To extend: add a lower-case key and a tuple of extensions to
+`SKILL_EXTENSIONS`; nothing else changes.
+
+### Fix 4: the "only N" message matches the screen
+
+A replacement is saved beside the run, so the saved result still says how many questions the run itself wrote. When
+replacements exist, the result the API returns (and only that; the saved original is never rewritten) gets
+`counts.questions` = the run's questions + the replacements, `status` recomputed from that count (`too_few` becomes `ok`
+at the minimum) and `message` rebuilt with the same sentence and the right N ("Only N question(s) could be written from
+the candidate's code. A session needs at least 3."; `null` when `ok`). It applies after a restart too (the replacements
+are read from the saved run), and a regenerate starts again from zero. The server cannot know which questions the
+recruiter removed on the screen, so "effective" means run questions plus replacements.
 
 ## Writing and checking a question
 
@@ -236,6 +340,36 @@ All of these checks must pass (a failed check is named in the repair call):
 6. **SQL questions only:** the SQL rules above (`no_real_sql_in_file`, `not_sql_starter`, `unknown_sql_name`).
 7. **Fix questions only** (`kind` = `fix_code`): see "Fix questions" below.
 
+## Which calls use which provider
+
+| Call | Provider |
+|---|---|
+| Writing and repairing a question (`POST /questions`, retry) | `QUESTIONS_MODEL_CHAIN`: Groq first, then Gemini |
+| The replacement route (`POST /questions/replace`) | the same chain |
+| Reading the job description (JD Parser) | Gemini only |
+| Reading the CV (CV Parser) | Gemini only |
+
+The JD and CV parsers are Phase 1 code (`skillverify/`) that builds a `GeminiProvider` itself, so they stay on Gemini.
+The writer talks to whichever provider answers through one small interface, `generate_json(system, user) -> dict`
+(prompt in, JSON out), implemented by `GeminiProvider` and by `skillverify_questions/groq_provider.py`. Selection, the
+validation checks, the SQL and fix-code rules and the one-repair rule do not know which provider answered. How Groq is
+called and how its failures move the run to Gemini is described in `docs/API.md`, "Groq first for questions". Groq's
+default model `openai/gpt-oss-120b` is listed in Groq's model documentation with JSON Object Mode (read from the
+documentation, not checked with a live call); the request uses temperature 0 and `response_format: json_object`.
+
+## Handover, pacing and saved sets
+
+- **Handover.** Every model of the question chain hands over to the next one on a rate limit or a temporary failure; the
+  write in progress is made again on the next model with the same inputs and does not use the one repair attempt. A run
+  is only ended when every model is resting for longer than `QUESTIONS_MAX_WAIT_SECONDS`, and then the questions already
+  written are saved as a `partial` run that a retry continues from. `meta.models_used` and `meta.fallbacks` say who wrote
+  what; `meta.model` is the model that wrote the most questions.
+- **Pacing.** `QUESTIONS_MIN_GAP_SECONDS` between two calls to the same model.
+- **Saved sets.** A finished set is saved with a fingerprint (GitHub username, score, the (skill, tier) pairs asked about,
+  `WRITER_SETTINGS_VERSION`). **Bump `WRITER_SETTINGS_VERSION` in `skillverify_questions/config.py` whenever the prompt, the
+  checks or the selection rules change**, so old sets are not served for new rules.
+- Details, settings and what is stored: `docs/API.md`, "Model chain and saved results".
+
 ## Recruiter-only fields
 
 `why` and `reference_notes` are for the recruiter. The student-visible fields are only **`question`, `language` and
@@ -244,8 +378,9 @@ include `why` or `reference_notes`.
 
 ## Privacy
 
-The candidate's code excerpts (up to 250 lines per question, after secret redaction) are sent to Google's Gemini to write
-the questions. The Upload screen's privacy line must be updated to say so in the web step. Logs carry only analysis ids,
+The candidate's code excerpts (up to 250 lines per question, after secret redaction) are sent to the model that writes
+the questions: Groq when `GROQ_API_KEY` is set (it is the primary), otherwise, or when Groq falls back, Google's Gemini.
+The Upload screen's privacy line must name both providers. Logs carry only analysis ids,
 stage names, counts and error codes: never file text, question text, model output or keys.
 
 ## Manual live test (curl)

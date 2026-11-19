@@ -1,6 +1,7 @@
 """RetryingProvider: an outer retry layer around an LLM provider (same ``generate_json`` interface)."""
 import re
 import time
+from typing import Optional, Sequence
 
 from skillverify.jd.provider import LLMCallError, LLMProvider
 
@@ -21,8 +22,9 @@ class RetryingProvider(LLMProvider):
     HTTP 429, rejected keys and answer-shape problems are never retried.
     """
 
-    def __init__(self, inner: LLMProvider) -> None:
+    def __init__(self, inner: LLMProvider, delays: Optional[Sequence[float]] = None) -> None:
         self.inner = inner
+        self._delays = delays  # None: the Gemini delays from settings
 
     @property
     def name(self) -> str:  # type: ignore[override]
@@ -33,7 +35,7 @@ class RetryingProvider(LLMProvider):
         return getattr(self.inner, "model", "unknown")
 
     def generate_json(self, system_prompt: str, user_prompt: str) -> dict:
-        delays = settings.GEMINI_OUTER_RETRY_DELAYS
+        delays = settings.GEMINI_OUTER_RETRY_DELAYS if self._delays is None else self._delays
         attempt = 0
         while True:
             try:

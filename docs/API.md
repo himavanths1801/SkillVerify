@@ -35,14 +35,27 @@ CORS allows only `http://localhost:5173` and `http://127.0.0.1:5173` (GET and PO
 ### `GET /api/health`
 
 ```json
-{"status": "ok", "gemini_key_set": true, "github_token_set": true,
+{"status": "ok", "gemini_key_set": true, "groq_key_set": true, "github_token_set": true,
  "model_chain": ["gemini-3.6-flash", "gemini-3.5-flash-lite"],
  "models": [{"model": "gemini-3.6-flash", "state": "cooling_down", "seconds_left": 87},
             {"model": "gemini-3.5-flash-lite", "state": "ready", "seconds_left": 0}],
- "limits": {"analysis_timeout_seconds": 360, "questions_timeout_seconds": 360, "scan_max_repos": 30}}
+ "reading_model_chain": ["gemini-3.6-flash", "gemini-3.5-flash-lite"],
+ "reading_models": [{"model": "gemini-3.6-flash", "state": "cooling_down", "seconds_left": 87},
+                    {"model": "gemini-3.5-flash-lite", "state": "ready", "seconds_left": 0}],
+ "questions_model_chain": ["groq:openai/gpt-oss-120b", "gemini-3.6-flash", "gemini-3.5-flash-lite"],
+ "questions_models": [{"model": "groq:openai/gpt-oss-120b", "state": "ready", "seconds_left": 0},
+                      {"model": "gemini-3.6-flash", "state": "cooling_down", "seconds_left": 87},
+                      {"model": "gemini-3.5-flash-lite", "state": "ready", "seconds_left": 0}],
+ "limits": {"analysis_timeout_seconds": 360, "questions_timeout_seconds": 360, "scan_max_repos": 30,
+            "questions_min_gap_seconds": 3, "questions_max_wait_seconds": 25,
+            "reading_min_gap_seconds": 2, "reading_max_wait_seconds": 20, "questions_max_output_tokens": 0},
+ "storage": {"enabled": true}}
 ```
 
-Booleans only for the keys; a key or token value is never returned. `limits` holds numbers only (see "Time limits
+`storage.enabled` says whether saved results are on (see "Model chain and saved results"). Booleans only for the keys (`groq_key_set` too); a key or token value is never returned. `reading_model_chain` and
+`reading_models` are the chain that reads the job description and the CV (see "Reading chain"); `model_chain` and
+`models` are the same chain under their older names; `questions_model_chain` and `questions_models` are the
+question writer's chain, which can start with Groq (see "Groq first for questions"). `limits` holds numbers only (see "Time limits
 and big accounts"). `state` is `ready`, `cooling_down` or
 `unavailable`. See "Gemini model chain" below.
 
@@ -80,9 +93,13 @@ finishes, and are kept after the job is `done`. They are for display only and ar
   start with "about", "we ", "our ", "the ", "job description", "overview" or "description" (any capitalisation).
   Otherwise `null`. Examples: `Junior Data Analyst - Retail Analytics Team` -> `Junior Data Analyst`;
   `Backend Developer (Python)` stays as it is.
-- `model` (filled when the run starts): the Gemini model this run uses for all its calls, or `null` if none could be
-  chosen. `fallback_used` is `true` when that model is not the first model of the chain. Both are kept after the job
-  is `done` and replaced when the job is retried.
+- `model` (filled as soon as a reading model is picked): the model that read the CV (or, before the CV is read, the
+  job description), or `null` if none could be chosen. `fallback_used` is `true` when either document was read by a
+  model that is not the first model of the reading chain, whether read now or served from the saved readings. Both are
+  kept after the job is `done` and replaced when the job is retried.
+- `readers`: `{"jd": {"model": "gemini-3.6-flash", "cached": false}, "cv": {"model": "gemini-3.5-flash-lite",
+  "cached": true}}`, which model read each document and whether the reading came from the saved readings with no model
+  call (`model` is then the model that read it the first time). An entry is `null` until that document is reached.
 - `scan` (filled when the scan stage starts, `null` before and when there is nothing to scan): how many repositories
   the analysis looked at. `repo_cap` is the `SCAN_MAX_REPOS` setting; `repos_total` is the number of eligible repos
   (not forks, not empty) before the cap; `repos_used` is how many the scan received; `capped` is `true` when
@@ -115,14 +132,17 @@ and expires with the analysis.
 
 | Route | What it does |
 |---|---|
-| `POST /api/analyses/{id}/questions` | Starts a run. `202` with the status object. `409 analysis_not_ready` (unknown id, analysis not `done`, or result status not `ok`); `409 questions_already_started` (a run is queued, running or done: GET it instead). |
+| `POST /api/analyses/{id}/questions` | Starts a run. Optional body `{"regenerate": true}` (see "Model chain and saved results"). `202` with the status object; a new run whose account, score, asked skills and writer version match a saved set is `done` at once (`meta.cached`). `409 analysis_not_ready` (unknown id, analysis not `done`, or result status not `ok`); `409 questions_already_started` (a run is queued, running, done or saved: GET it instead, or send `regenerate`); `422` for a body that is not empty or `{"regenerate": true|false}`. |
 | `GET /api/analyses/{id}/questions` | The status object. `404` for an unknown analysis; `state: "idle"` when no run was started. |
-| `POST /api/analyses/{id}/questions/retry` | Only for a `failed` run whose error is retryable; `202` with the status object, otherwise `409 {"message"}`. It reuses the cached selection and file contents, so GitHub is only read again if GitHub was what failed. It picks the next Gemini model by the usual chain rules. |
+| `POST /api/analyses/{id}/questions/retry` | Only for a `failed` run whose error is retryable; `202` with the status object, otherwise `409 {"message"}`. It reuses the cached selection and file contents, so GitHub is only read again if GitHub was what failed. It picks the next model of the question chain by the usual chain rules. |
 | `POST /api/analyses/{id}/questions/replace` | Synchronous. Optional body `{"after": "<dropped question id>"}` (context only; at most 64 characters). Writes ONE new question from the next unused reserve file and returns `{"question": {...}, "skipped_skills": [...], "dropped": [...]}` (`dropped` lists this call's own failed attempts). `409 no_replacement_available` when no other file is left (the error object then carries `dropped` if attempts failed); `409 analysis_not_ready` before the run is done; `422 invalid_input` for a bad body; `503` with an error object for Gemini failures (`ai_rate_limited` with `fallback_available`, `ai_all_limited`, `ai_busy` ...). The server never uses a file that was already used in the run, whatever the recruiter dropped. |
 
 Status object: `{"id", "state": "idle" | "queued" | "running" | "done" | "failed", "stage", "result", "error",
-"meta": {"model", "fallback_used"}}`. Stages, in order: "Choosing code", "Reading files", "Writing questions",
-"Checking questions". `meta.model` and `meta.fallback_used` mean the same as for analyses (one Gemini model per run).
+"meta": {"model", "fallback_used", "models_used", "fallbacks"}}` (plus `cached` and `cached_from` for a saved set).
+Stages, in order: "Choosing code", "Reading files", "Writing questions", "Checking questions". `meta.model` is the model
+that wrote the MOST questions (the earlier entry of the chain on a tie), `meta.fallback_used` is true when that is not the
+first entry, `meta.models_used` is `{model: questions written}` and `meta.fallbacks` counts the handovers from one model
+to the next (see "Model chain and saved results").
 
 `result` when `done`:
 
@@ -152,6 +172,10 @@ Status object: `{"id", "state": "idle" | "queued" | "running" | "done" | "failed
 - `status`: `ok` (3 or more questions, `message` null), `too_few` (1 or 2: "Only N question(s) could be written from the
   candidate's code. A session needs at least 3."), `none` (0: "No code was found that shows the job's skills, so no
   questions could be written."). Below 3 is reported honestly and never padded.
+  Replacement questions (see `.../questions/replace`) are saved beside the run, so the result returned by
+  `GET .../questions` counts them: `counts.questions`, `status` and `message` (same sentence, the right N) follow the
+  run's questions plus its replacements, e.g. a `too_few` run becomes `ok` when the count reaches 3. The saved
+  original is not rewritten, and a restart gives the same corrected result.
 - `why.top_ranked` is true only for the rank-1 file of the skill (false for reserve picks and replacements; the
   `reason` sentence says "highest-ranked" only when it is true). For a SQL question `language` is always `sql`.
 - A `fix_code` question also has `failing_example` `{"input", "expected", "actual"}` (short plain strings, at most 120
@@ -161,8 +185,9 @@ Status object: `{"id", "state": "idle" | "queued" | "running" | "done" | "failed
   `attempts` (1 or 2) and `reasons`, a list of codes from the closed set `bad_json`, `bad_length`, `wrong_file`,
   `unknown_file_reference`, `unknown_symbol`, `unknown_call`, `url_or_email`, `secret_like`, `duplicate`,
   `fix_without_starter`, `not_sql_starter`, `unknown_sql_name`, `no_real_sql_in_file`, `fix_without_example`,
-  `fix_example_vacuous`, `fix_not_modified` (final attempt first). Metadata
-  and codes only. `counts.dropped` equals its length. `skipped_skills` lists only skills with zero questions.
+  `fix_example_vacuous`, `fix_not_modified` (final attempt first). Each entry also has `causes` (additive): for a
+  `bad_json` drop, the codes `empty_response`, `cut_off`, `not_json`, `wrong_shape` that say why the answer was
+  unusable (final attempt first, no duplicates; an empty list otherwise). Metadata and codes only. `counts.dropped` equals its length. `skipped_skills` lists only skills with zero questions.
 - `kind` is `write_code` or `fix_code`. Skip reasons are a closed set: `not_found_in_code`,
   `not_checkable_from_code`, `no_usable_file`, `question_failed`, `not_enough_room`.
 - **Recruiter-only fields:** `why` and `reference_notes`. The student-visible fields are only `question`, `language`
@@ -205,10 +230,12 @@ fail, immediately, with no retries and no fallback: a missing user is `github_us
 an unreachable GitHub, or a failed scan is `github_unavailable`. A partial score is never returned. (A scan that
 finishes but is marked incomplete is not a failure: the score already accounts for incomplete scans, as in Phase 1.)
 
-**Gemini: quiet retries, then the error.** The provider already retries HTTP 500/502/503/504 twice (2 s, 6 s). On top
+**Gemini: handover first, quiet retries as the last resort, then the error.** While another reading model is ready, a
+temporary failure or a rate limit rests that model and the same call goes to the next one (see "Reading chain"). The
+quiet retries below apply to the LAST model that is ready. The provider already retries HTTP 500/502/503/504 twice (2 s, 6 s). On top
 of that the API retries temporary failures (HTTP 500/502/503/504 or a network problem) after 5, 10 and 20 seconds
 (`GEMINI_OUTER_RETRY_DELAYS` in `api/settings.py`). While it retries the job stays `running` with the normal stage, so
-the user sees nothing. If every retry fails the error is `ai_busy`. HTTP 429 is not retried (`ai_rate_limited`); instead the next run uses another model (below).
+the user sees nothing. If every retry fails the error is `ai_busy`. HTTP 429 is not retried in place (`ai_rate_limited` only when no model is left to take the call).
 
 ## Time limits and big accounts
 
@@ -272,11 +299,271 @@ shows the value. `GET /api/health` returns the three numbers under `limits`.
 an extra `stage`. A timed-out questions run does the same with its own stage names ("Choosing code", "Reading files",
 "Writing questions", "Checking questions"). A retry starts clean (`timings` and `scan` reset).
 
+## Model chain and saved results
+
+### What was found (Step 0, by reading the code)
+
+- **How the questions chain picks and rests models before this change.** `ModelChain.pick()` returned the first entry that
+  was neither cooling down nor unavailable. A limit rested an entry for 120 s (`RATE_LIMIT_COOLDOWN_SECONDS`), or 1800 s
+  when its previous outcome was also a limit (`REPEATED_LIMIT_COOLDOWN_SECONDS`); a model Gemini did not know rested for
+  3600 s (`MODEL_UNAVAILABLE_SECONDS`). The Groq provider fell through to the next entry **inside** a run (429, a refused
+  key, a failed call, a too-large request). **A rate limit ended a whole run in exactly one place:** a Gemini entry that
+  answered HTTP 429 (or a temporary failure) raised out of `_RunProvider.generate_json`, `QuestionManager._run` turned it
+  into the job error `ai_rate_limited` / `ai_busy`, and the questions already written were thrown away. That is how
+  "Groq limited, then Gemini 3.6 limited" ended a run while Gemini 3.5 and flash-lite were ready: only the *next* run
+  would have used them. A Gemini 404 on its first call was the only in-run switch for Gemini.
+- **The scoring chain (job description and CV reading) does not hand over mid-run.** `pipeline._start_ai` only moves on to
+  the next entry when the FIRST job-description call says the model is unknown (404). A 429 anywhere in the analysis ends
+  that analysis with `ai_rate_limited` and the next analysis uses the next model. This is unchanged: the analysis chain is
+  Phase 1 reading code and is out of scope here.
+- **Where results lived.** Finished analyses were only in `JobManager._jobs` (an in-memory dict: at most 20 jobs, dropped
+  after one hour) and finished question runs only in `QuestionManager._jobs`, so every restart lost them. GitHub file
+  contents are fetched in `skillverify_questions.service.prepare` through `GitHubFiles.file_text`, one call per file, and
+  were kept only inside that run's `Prepared` object (for a retry or a replacement of the same run): a new run fetched
+  them all again.
+
+### Every model hands over to the next one
+
+In one questions run, any entry of the chain (Groq or Gemini) that answers a **rate limit** or a **temporary failure**
+(HTTP 5xx, a network problem) is rested (the usual 120 s / 1800 s; a provider's own retry-after replaces the default
+only when it is *shorter*) and the SAME write is made again on the next entry that is not resting. The run is never ended
+while at least one entry is ready. The write in progress does not count as a failed attempt and does not use up the one
+repair attempt (the writer never sees the handover). The other rules are unchanged: a refused Groq key sets Groq aside for
+the run, a request too large for Groq goes to the next entry for that one request, a Gemini model that returns 404 on
+its first call is set aside for 3600 s, and an unusable answer is the writer's `bad_json` + one repair.
+
+When **every** entry is resting: if the shortest remaining cooldown is at most `QUESTIONS_MAX_WAIT_SECONDS` and the run
+still has time, the run waits that long and continues. Otherwise it ends with the usual `ai_rate_limited` (or
+`ai_all_limited` when it never got started) and **keeps the questions already written**: they are saved as a `partial`
+run and a retry continues from them (the files already used stay used; nothing is written twice).
+
+Each handover writes one log line with model names and a code only, for example
+`handover from=groq:openai/gpt-oss-120b to=gemini-3.6-flash reason=rate_limited` (`reason` is `rate_limited`,
+`temporary`, `not_found`, `key_rejected` or `too_large`). A wait writes `waiting seconds=5 for a model to be ready`.
+
+### Pacing
+
+At least `QUESTIONS_MIN_GAP_SECONDS` pass between two calls to the **same** model (the free per-minute limits belong to
+the key, so the pause is shared by every run). A handover to another model does not wait. The pause is skipped when
+waiting would pass the questions time limit, and the normal limit logic applies.
+
+### Saved results (SQLite)
+
+Saved results use one SQLite file, `skillverify.sqlite3`, through the standard `sqlite3` module (no new dependency),
+written under a lock and in transactions. The folder is `SKILLVERIFY_DATA_DIR`, default `api/_data/` (created when
+needed, and **never committed**: the owner adds `api/_data/` to `.gitignore`). The file is opened the first time it is
+needed, not when the app is imported. If it cannot be opened or is corrupt, ONE plain log line is written, storage
+switches itself off, the app keeps working in memory only, and no request fails because of it
+(`GET /api/health` shows `"storage": {"enabled": false}`).
+
+| What | Saved when | Used for |
+|---|---|---|
+| Finished analyses: id, `result`, `meta`, created time, and a small public repo list for the question writer (repo names, languages, last commit dates, default branches, which repo shows which skill) | the analysis is `done` with result status `ok` (running and failed analyses are not saved) | a restart no longer wipes them; they are loaded when first asked for |
+| Finished question runs: the `result` and `meta` the API returns, keyed by the analysis id, with the question-set fingerprint | the run is `done` (`ok`, `too_few` or `none`) | a restart restores them |
+| A `partial` run: the questions written so far, the error, the fingerprint | a run ended early by limits and wrote at least one question | a retry continues from it, also after a restart |
+| Replacements written by the replace route (with the `after` id) | each replacement | files already used stay used after a restart |
+| GitHub file texts, redacted: key = repo full name + path + the repo's last push date | a file is fetched from GitHub | a later run reads them from the cache: no GitHub call |
+| Parsed model answers for the CV and the job description (model name + the JSON answer), keyed by a SHA-256 of the redacted text sent + a prompt version | a document is read by a model | a repeat of the same document needs no model call (see "Reading chain") |
+
+Nothing else is stored: no API key, token or header, no CV or job description text (the saved readings hold only the parsed answer under a hash), no prompt. The
+only data beyond what the API returns is the **file texts of the candidate's public repositories** (after the secret
+redaction the question writer already applies) and the small public repo list above. Delete the folder to remove all of it.
+
+**Question-set cache.** A new questions run for ANOTHER analysis is served at once, without GitHub or model calls, when a
+saved set has the same fingerprint: the GitHub username (lower case), the score's `repo_fingerprint`, the list of
+(skill, tier) pairs asked about, and `WRITER_SETTINGS_VERSION` (a constant in `skillverify_questions/config.py`, bumped
+when the prompt or the checks change). The status shows `meta.cached: true` and `meta.cached_from` (the analysis id the
+set was written for); `schema_version` stays 1. A changed fingerprint or writer version is a miss.
+
+**Regenerate.** `POST /api/analyses/{id}/questions` with `{"regenerate": true}` skips the question-set cache for that run
+(the file cache is still used) and overwrites the saved run when it finishes; a failed regeneration never wipes a good
+saved run. Without it, a run that already exists (also one loaded from disk) is returned by GET, and a second POST is
+`409 questions_already_started`. A run that is queued or running cannot be regenerated. The replace route keeps working
+and records the replacement in the saved run; the saved `result` itself is not rewritten (the recruiter's screen keeps its
+own copy of replacements, see the web step).
+
+**File cache.** Keyed by repo full name, path and the repo's last push date (the validator's `last_commit_date`): a changed
+date is a miss. Files over the existing size limit (`MAX_FILE_BYTES`) are not cached; at most 2000 files are kept and the
+oldest are dropped first. Hits and misses are logged as counts only (`file cache hits=12 misses=0`).
+
+**Retention.** When the server starts, saved analyses and question runs older than `SAVED_RESULTS_DAYS` days are deleted.
+
+### New settings
+
+| Setting (environment or `.env`) | Default | Allowed | What it does |
+|---|---|---|---|
+| `QUESTIONS_MIN_GAP_SECONDS` | 3 | 0 to 30 | minimum time between two calls to the same model |
+| `QUESTIONS_MAX_WAIT_SECONDS` | 25 | 0 to 120 | the longest wait when every model is resting (0 switches waiting off) |
+| `QUESTIONS_MAX_OUTPUT_TOKENS` | empty (`0`: no cap sent) | 500 to 8000 | the most tokens Groq may answer a question with (`max_completion_tokens`); empty sends nothing, as before. Shown as `questions_max_output_tokens` under `limits` in health |
+| `SKILLVERIFY_DATA_DIR` | `api/_data/` | a folder | where the saved results live |
+| `SAVED_RESULTS_DAYS` | 14 | 1 to 90 | retention of saved analyses and question runs |
+
+The three numbers are read like the other limits (lazily; a missing, non-numeric or out-of-range value uses the default
+with one log line that names the setting and never shows the value). `GET /api/health` shows `questions_min_gap_seconds`
+and `questions_max_wait_seconds` under `limits`.
+
+## Groq first for questions
+
+The **question writer** (the questions run and the replacement route) has its own model chain that can mix two providers.
+Groq is the primary; the Gemini chain is the fallback behind it. Job description and CV reading stay on Gemini only (see
+`docs/QUESTIONS.md`, "Which calls use which provider").
+
+**Configuration** (environment or `.env`, read once, lazily):
+
+- `GROQ_API_KEY`: when empty or missing, every Groq entry is skipped silently and the app behaves exactly as with Gemini
+  only.
+- `QUESTIONS_MODEL_CHAIN`: comma-separated entries, same parsing rules as `GEMINI_MODEL_CHAIN`. A plain name is a Gemini
+  model; a `groq:` prefix is a Groq model, for example `groq:openai/gpt-oss-120b,gemini-3.6-flash`. Invalid names are
+  dropped with one log line that counts them (the text is not logged); duplicates are removed; at most 8 entries. A
+  custom chain that ends up empty (for example only `groq:` entries and no key) falls back to the Gemini chain.
+- Unset: `groq:openai/gpt-oss-120b` first, then the Gemini chain exactly as it is for the analysis (so
+  `GEMINI_MODEL_CHAIN` still decides the Gemini entries).
+
+**Rules** (in memory; one state per entry, `ready` or `cooling_down` with seconds left, shown by `GET /api/health`):
+
+| Groq answers | What happens |
+|---|---|
+| HTTP 429 | That entry rests for the `Retry-After` seconds Groq sent when that is **shorter** than the usual cooldown (at least 1 s); otherwise the usual 120 s (1800 s when repeated). The run continues **in the same run** with the next entry. |
+| 5xx, timeout, network problem | One quiet retry after 2 s. If it fails again, that entry is rested (120 s) and the next entry answers. |
+| HTTP 401 or 403 | Groq is unusable: all Groq entries are skipped for the rest of the run and the next entry answers. The run never fails because of the Groq key. With no other entry the error is `ai_not_configured`. Groq is not rested, so a fixed key works on the next run. |
+| HTTP 413, or a "request too large" reply | This one request is too big for Groq's per-minute token limit. The next entry answers **this request only**; Groq is not rested and is tried first again for the next request. |
+| Empty reply, or a reply that is not a JSON object | The reply is read tolerantly first (code fences and text around the object are removed). If it is still unusable it counts as `bad_json` like Gemini replies, with a cause (`empty_response`, `cut_off`, `not_json`, `wrong_shape`) in `dropped[].causes`. The writer's one repair attempt goes to a **different ready entry** (the same one only when no other is ready), then a drop with reason `bad_json`. No provider change is counted. |
+
+Gemini entries hand over the same way (see "Model chain and saved results"): a Gemini 429 or temporary failure rests that
+entry and the next one answers, and a model Gemini does not know (404 on its first call) is set aside. When no entry is
+left and the shortest cooldown is above `QUESTIONS_MAX_WAIT_SECONDS`, the run fails with `ai_rate_limited`
+(`fallback_available: false`) and keeps what it wrote; when every entry is resting at the start of a run, it fails with
+`ai_all_limited`, as before.
+
+`meta.model` of a questions run is the provider-qualified entry that produced the result (`groq:openai/gpt-oss-120b`, or
+a plain Gemini name), and `meta.fallback_used` is `true` when that is not the first entry of the chain. The key is never
+returned, logged or put into an error.
+
+## Reading chain
+
+Reading the job description and the CV now has the same protection as the question writer: model handover, pacing, saved
+results and a privacy guard. Nothing in `skillverify/*` changed; the parsers take any object with `generate_json`, so
+`api/reading.py` wraps the models and is handed to them as their provider.
+
+### What was found (Step 0, by reading the code; no real call was made)
+
+- `api/pipeline.py` built ONE Gemini provider per run (`RetryingProvider(GeminiProvider(model))`) and passed the same
+  object to `JDParser` and then to `CVParser`. Each parser makes ONE model call per document (`auto_add=False`, so no
+  proposal call).
+- The scoring chain moved on only when the FIRST job description call said the model is unknown (HTTP 404). A 429 ended
+  the analysis with `ai_rate_limited` and rested the model for the NEXT run; a 503 was retried quietly 3 times (5, 10,
+  20 s) on the same model and then ended as `ai_busy`. So in a live run a slow first attempt, then two limits, then a
+  third attempt on the smallest model needed three user presses, and a different model could read each attempt.
+- The question writer already had everything needed: `ModelChain` (per-entry cooldowns 120 s / 1800 s repeated / 3600 s
+  unknown, a provider's Retry-After used only when shorter), `GroqProvider`, `RetryingProvider`, and the process-wide
+  `Pacer` (a minimum gap per model name). The reading step reuses `ModelChain`, `RetryingProvider`, the Groq classes and
+  the very same `Pacer` instance (so reading and question calls to one model queue behind each other).
+- Nothing needed frozen code. One thing is deliberately NOT done: `ModelChain` instances are separate for reading
+  (`deps.chain`) and for questions (`deps.questions_chain`), so a Gemini model rested by the question writer is not
+  known to the reading chain and the other way round. Sharing them would change the question writer's order and cooldown
+  behaviour, which this step must not do. The pacing gap IS shared.
+
+### Handover
+
+`ReadingProvider` (one per document) makes each call like this:
+
+1. **Saved reading?** The exact text is looked up (see "Same input, same reading"). A hit answers with no model call
+   and no pick, so even a server with every model resting can finish a repeated analysis.
+2. Otherwise it takes the first reading-chain entry that is ready, spaced from the previous call to that model by
+   `READING_MIN_GAP_SECONDS`, and calls it.
+3. A **rate limit (HTTP 429)** or a **temporary failure (HTTP 500/502/503/504 or a network problem)** rests that entry
+   (120 s, or 1800 s if its previous outcome was also a limit; a Retry-After is used only when SHORTER than that) and
+   the SAME call, with the same text, goes to the next ready entry. A handover logs one line with codes and model names
+   only: `reading handover doc=cv from=gemini-3.6-flash to=gemini-3.5-flash-lite reason=rate_limited`. The reasons are
+   `rate_limited`, `temporary`, `not_found`, `key_rejected` and `too_large` (the last two only for a `groq:` entry,
+   except `not_found`, which is for Gemini).
+4. A model Gemini does not know (HTTP 404 on its first answer of the analysis) is set aside for an hour and the call
+   goes to the next entry; a 404 after that model already answered stays `ai_not_configured`. A rejected Groq key sets
+   Groq aside for that document; a request too large for Groq goes to the next entry without resting Groq.
+5. **Every entry resting:** if the shortest rest is at most `READING_MAX_WAIT_SECONDS` AND the wait ends before the
+   analysis limit, the reading waits (`reading waiting doc=jd seconds=5 for a model to be ready`) and continues, at
+   most 3 times in a row. Otherwise the call ends with the usual code: `ai_rate_limited` (with `fallback_available`
+   false, since nothing is ready), `ai_busy`, or `ai_all_limited` when nothing was even tried because every entry was
+   already resting when the analysis started.
+6. **Unusable output is not a handover.** A model that answers with JSON the parser cannot use (no `skills` list) goes to
+   the parser, whose own rules apply (`jd_unreadable` / `cv_unreadable`); nothing is rested and nothing is saved, so a
+   try again reads the document again.
+7. **Quiet retries** of a temporary failure (5, 10, 20 s for Gemini; one 2 s retry for Groq) are kept only when no other
+   entry is ready: while a neighbour is ready the failure hands over instead of waiting.
+
+Each document is read by the first ready entry, so a handover on the job description usually carries the CV with it, but
+the two documents can be read by different models. `meta.model` is the model that read the CV and `meta.fallback_used`
+is true when either document was read by a model other than the first entry; the Score screen's note about a backup
+model keeps using those two fields. `meta.readers` (see the route above) says who read what.
+
+### Pacing and the time limit
+
+`READING_MIN_GAP_SECONDS` (default 2) is the least time between two calls to the same model name; calls to different
+models never wait for each other. A pause that would pass the analysis limit (`ANALYSIS_TIMEOUT_SECONDS`, 360 s unless
+you changed it) is skipped, and so is a handover wait (point 5). The clock and the sleep are the injectable ones of
+`api/pacing.py`, so tests run on a fake clock. `timings` still records every stage, a failed stage included, and the
+job still ends with one of the existing error codes. (A single model call can take as long as its own request timeout;
+the job-level limit that already existed still ends the analysis with `timeout` in that case.)
+
+### Which models read: `READING_MODEL_CHAIN`
+
+Same format as `QUESTIONS_MODEL_CHAIN`: comma-separated, a plain name is a Gemini model, a `groq:` prefix is a Groq model
+(dropped without a `GROQ_API_KEY`); invalid names are dropped with one log line that counts them. **Unset, the reading
+chain is the current Gemini chain (`GEMINI_MODEL_CHAIN`, else `GEMINI_MODEL` + the default) and Groq is NOT in it.** Groq
+reads only if the owner adds a `groq:` entry. This step makes NO claim that Groq reads a CV or a job description as well
+as Gemini: the owner must first compare the two live, on real documents (for example by running the same CV and job
+description once with each and comparing the skills found and the score), before putting Groq in this setting.
+
+### Same input, same reading
+
+Each model answer that the parsers can use (a JSON object with a `skills` list) is saved in the existing SQLite store
+(table `reading_cache`) under a key: the SHA-256 of the system prompt, the exact text that was sent (after the removal
+below) and `READING_PROMPT_VERSION` (`api/reading.py`; bump it when reading changes in a way the prompts do not show).
+A repeat of the same document, even from another analysis or after a restart, is answered from the store with no model
+call. The saved value is the model name and the model's JSON answer, never the text that was sent. The parsers' own
+deterministic steps (finding the contacts and the GitHub username, checking every quote against the text, mapping to the
+taxonomy, tiering) run again every time on the real text, so the same input always gives the same parsed result and the
+same score. A changed text, a changed prompt or a new `READING_PROMPT_VERSION` is a miss. At most 500 readings are kept
+(oldest dropped first) and they are deleted with the other saved results after `SAVED_RESULTS_DAYS`. With saved results
+off (`storage.enabled` false) every run reads again, as before.
+
+### Privacy: e-mail addresses and phone numbers
+
+Before any CV text goes to any model, `api/reading.py` removes every e-mail address and phone number from it (the CV
+parser's own detectors; fixed placeholders `[EMAIL]` and `[PHONE]`). The name, the links and the skills stay. The key of
+a saved reading is computed AFTER this, so the cache never sees the raw text and two CVs that differ only in their
+contact lines are the same reading. Job descriptions are not changed.
+
+**What the frozen parser still does, and why it is kept.** The CV parser finds the e-mail addresses, phone numbers and
+the GitHub username itself, in memory, from the real text (`candidate.emails`, `candidate.phones`, the
+`no_email_found` / `no_phone_found` warnings that reach the score as `cv_warnings`, and `github.username`). Removing the
+contacts before the parser would change those fields and so the score's flags, which this step must not do, and the
+GitHub username may be found next to the contact lines. So the real text stays inside the process (as it did), the
+parser's own redaction already replaced the contacts in the prompt (as it did), and the API layer now guarantees it a
+second time at the point where text leaves, and in the cache key. The parsed contacts live only in the kept
+intermediates (memory); they are not returned, not logged and not saved (a saved analysis holds the result, the meta
+and a small public repo list, as before).
+
+**For the Upload screen (a website change for later, not done here):** "Your CV is sent to an AI service to read your
+skills, but your phone number and e-mail address are removed first; the readings are kept on this server for up to 14
+days so the same CV gives the same result." (If Groq is added to the reading chain, name Groq there as well.)
+
+### New settings
+
+| Setting (environment or `.env`) | Default | Allowed | What it does |
+|---|---|---|---|
+| `READING_MODEL_CHAIN` | the Gemini chain | model names, `groq:` prefix allowed | models that read the CV and the job description |
+| `READING_MIN_GAP_SECONDS` | 2 | 0 to 30 | minimum time between two calls to the same model |
+| `READING_MAX_WAIT_SECONDS` | 20 | 0 to 60 | the longest wait when every reading model is resting (0 switches waiting off) |
+
+The two numbers are read like the other limits (lazily; a missing, non-numeric or out-of-range value uses the default
+with one log line that names the setting and never shows the value) and are shown under `limits` in the health route.
+
 ## Gemini model chain
 
 Different Gemini models have separate quotas, so the API keeps an ordered **chain** of models. The first is the main
-model. One run uses **one** model for all its Gemini calls (job description and CV), chosen when the run starts, so a
-result is never a mix of models. The choice depends only on server state, so Retry and a fresh Analyze behave the same.
+model. *(Superseded for reading: since the "Reading chain" step each document is read by the first ready model and a limit
+hands the same call over inside the run. The rules below describe the cooldown bookkeeping, which is unchanged.)*
 
 **Configuration**, read at start-up (the `.env` file is read too):
 

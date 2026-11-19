@@ -27,6 +27,11 @@ from api.questions import QuestionError, QuestionManager
 
 log = logging.getLogger("skillverify.api")
 
+# The numbers GET /api/health shows under ``limits`` (numbers only).
+HEALTH_LIMITS = ("analysis_timeout_seconds", "questions_timeout_seconds", "scan_max_repos",
+                 "questions_min_gap_seconds", "questions_max_wait_seconds", "reading_min_gap_seconds",
+                 "reading_max_wait_seconds", "questions_max_output_tokens")
+
 MAX_MB = settings.MAX_UPLOAD_BYTES // (1024 * 1024)
 
 
@@ -97,10 +102,13 @@ def create_app(deps: Optional[pipeline.Dependencies] = None) -> FastAPI:
     deps = deps if deps is not None else pipeline.default_dependencies()
     manager = JobManager(deps)
     chain = deps.chain
+    question_chain = deps.question_chain
     questions = QuestionManager(manager, deps)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        if deps.store is not None:  # server start: saved results older than SAVED_RESULTS_DAYS are deleted
+            deps.store.purge(settings.saved_results_days())
         yield
         manager.shutdown()
         questions.shutdown()
@@ -132,8 +140,13 @@ def create_app(deps: Optional[pipeline.Dependencies] = None) -> FastAPI:
         return {"status": "ok",
                 "gemini_key_set": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
                 "github_token_set": bool(os.environ.get("GITHUB_TOKEN", "").strip()),
+                "groq_key_set": bool(os.environ.get("GROQ_API_KEY", "").strip()),
                 "model_chain": list(chain.models), "models": chain.snapshot(),
-                "limits": settings.limits()}
+                "reading_model_chain": list(chain.models), "reading_models": chain.snapshot(),
+                "questions_model_chain": list(question_chain.models),
+                "questions_models": question_chain.snapshot(),
+                "limits": {name: value for name, value in settings.limits().items() if name in HEALTH_LIMITS},
+                "storage": {"enabled": deps.store is not None and deps.store.enabled}}
 
     @app.post("/api/analyses", status_code=202)
     async def create_analysis(jd_text: Optional[str] = Form(None), jd_file: Optional[UploadFile] = File(None),
@@ -173,8 +186,16 @@ def create_app(deps: Optional[pipeline.Dependencies] = None) -> FastAPI:
         return JSONResponse(status_code=exc.status, content={"error": exc.error})
 
     @app.post("/api/analyses/{job_id}/questions", status_code=202)
-    async def start_questions(job_id: str):
-        return questions.start(job_id)
+    async def start_questions(job_id: str, request: Request):
+        raw = await request.body()
+        try:
+            body = json.loads(raw) if raw.strip() else {}
+        except ValueError:
+            body = None
+        regenerate = body.get("regenerate") if isinstance(body, dict) else None
+        if not isinstance(body, dict) or (regenerate is not None and not isinstance(regenerate, bool)):
+            return _invalid("The body must be empty or a JSON object like {\"regenerate\": true}.")
+        return questions.start(job_id, regenerate is True)
 
     @app.get("/api/analyses/{job_id}/questions")
     async def get_questions(job_id: str):
@@ -202,7 +223,7 @@ def create_app(deps: Optional[pipeline.Dependencies] = None) -> FastAPI:
             return _invalid("The body must be empty or a JSON object like {\"after\": \"q_1234abcd\"}.")
         if questions.snapshot(job_id) is None:
             return _not_found()
-        return await run_in_threadpool(questions.replace, job_id)  # writes with Gemini: keep the event loop free
+        return await run_in_threadpool(questions.replace, job_id, after)  # writes with a model: keep the event loop free
 
     return app
 

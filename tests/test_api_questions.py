@@ -148,7 +148,7 @@ def test_questions_are_idle_until_started_and_the_analysis_result_never_changes(
     before = json.dumps(world.call("GET", job_id).json(), sort_keys=True)
     idle = world.call("GET", job_id, "/questions").json()
     assert idle == {"id": job_id, "state": "idle", "stage": None, "result": None, "error": None,
-                    "meta": {"model": None, "fallback_used": False}}
+                    "meta": {"model": None, "fallback_used": False, "models_used": {}, "fallbacks": 0}}
     started = world.call("POST", job_id, "/questions")
     assert started.status == 202
     body = started.json()
@@ -181,7 +181,7 @@ def test_the_finished_run_has_the_documented_shape(world):
 
 def test_the_run_uses_the_main_model_and_reports_it(world):
     status = world.ask(world.analysis())
-    assert status["meta"] == {"model": "model-a", "fallback_used": False}
+    assert status["meta"] == {"model": "model-a", "fallback_used": False, "models_used": {"model-a": 3}, "fallbacks": 0}
     assert world.fleet.question_calls() == {"model-a": 3, "model-b": 0, "model-c": 0}
 
 
@@ -240,15 +240,17 @@ def test_the_question_job_disappears_with_its_analysis(world, monkeypatch):
 # --------------------------------------------------------------------------
 def test_gemini_outage_fails_with_ai_busy_and_retry_reuses_the_cached_selection(world, monkeypatch):
     monkeypatch.setattr(retry, "_sleep", lambda seconds: None)
-    provider = world.fleet.providers["model-a"]
     job_id = world.analysis()
-    provider.question_error = LLMCallError("Gemini returned HTTP 503.")
+    for provider in world.fleet.providers.values():  # every model is down: a handover has nowhere to go
+        provider.question_error = LLMCallError("Gemini returned HTTP 503.")
     failed = world.ask(job_id)
     assert failed["state"] == "failed" and failed["result"] is None and failed["error"]["code"] == "ai_busy"
     assert failed["error"]["retryable"] is True and "fallback_available" not in failed["error"]
     github_calls = dict(world.files.calls)
     assert github_calls["tree"] == 1
-    provider.question_error = None
+    for provider in world.fleet.providers.values():
+        provider.question_error = None
+    world.clock.now += settings.RATE_LIMIT_COOLDOWN_SECONDS  # the models that were rested are ready again
     retried = world.call("POST", job_id, "/questions/retry")
     assert retried.status == 202 and retried.json()["state"] in ("queued", "running")
     done = world.wait(job_id)
@@ -267,17 +269,13 @@ def test_retry_is_refused_unless_failed_and_retryable(world):
     assert refused.status == 409 and "retryable" in refused.json()["message"]
 
 
-def test_a_429_marks_the_model_and_the_retry_uses_the_next_one(world):
+def test_a_429_rests_the_model_and_the_same_run_hands_over_to_the_next_one(world):
     job_id = world.analysis()
     world.fleet.providers["model-a"].question_error = LLMCallError("Gemini rate limit reached (HTTP 429).")
-    failed = world.ask(job_id)
-    assert failed["error"] == {"code": "ai_rate_limited", "message": errors.MESSAGES["ai_rate_limited"],
-                               "retryable": True, "fallback_available": True}
-    assert failed["result"] is None and failed["meta"]["model"] == "model-a"
+    done = world.ask(job_id)
+    assert done["state"] == "done" and done["error"] is None and done["result"]["status"] == "ok"
+    assert done["meta"] == {"model": "model-b", "fallback_used": True, "models_used": {"model-b": 3}, "fallbacks": 1}
     assert [row["state"] for row in world.chain.snapshot()] == ["cooling_down", "ready", "ready"]
-    world.call("POST", job_id, "/questions/retry")
-    done = world.wait(job_id)
-    assert done["state"] == "done" and done["meta"] == {"model": "model-b", "fallback_used": True}
     assert world.fleet.question_calls()["model-b"] == 3
 
 
@@ -289,7 +287,7 @@ def test_all_models_limited_fails_at_once_without_a_gemini_or_github_call(world)
     failed = world.ask(job_id)
     assert failed["error"]["code"] == "ai_all_limited" and failed["error"]["retryable"] is True
     assert (world.fleet.question_calls(), dict(world.files.calls), list(world.fleet.built)) == before
-    assert failed["meta"] == {"model": None, "fallback_used": False}
+    assert failed["meta"] == {"model": None, "fallback_used": False, "models_used": {}, "fallbacks": 0}
     world.clock.now += settings.RATE_LIMIT_COOLDOWN_SECONDS
     world.call("POST", job_id, "/questions/retry")
     assert world.wait(job_id)["state"] == "done"
@@ -308,7 +306,8 @@ def test_an_unknown_model_is_set_aside_and_the_next_one_used_within_the_run(worl
     world.fleet.providers["model-a"].question_error = LLMCallError(
         "Gemini model 'x' was not found (HTTP 404). Set GEMINI_MODEL.")
     done = world.ask(job_id)
-    assert done["state"] == "done" and done["meta"] == {"model": "model-b", "fallback_used": True}
+    assert done["state"] == "done" and done["meta"] == {
+        "model": "model-b", "fallback_used": True, "models_used": {"model-b": 3}, "fallbacks": 1}
     assert [row["state"] for row in world.chain.snapshot()][0] == "unavailable"
     assert world.fleet.question_calls() == {"model-a": 1, "model-b": 3, "model-c": 0}
 
@@ -464,17 +463,26 @@ def test_replace_needs_finished_questions_and_a_valid_body(world):
     assert world.call("POST", job_id, "/questions/replace", raw_body=b"{}", content_type="application/json").status == 200
 
 
-def test_replace_429_marks_the_model_and_reports_the_error(world):
+def test_replace_429_rests_the_model_and_the_next_one_writes_the_replacement(world):
     job_id = world.analysis()
     world.ask(job_id)
     world.fleet.providers["model-a"].question_error = LLMCallError("Gemini rate limit reached (HTTP 429).")
     response = world.call("POST", job_id, "/questions/replace")
+    assert response.status == 200 and response.json()["question"]["id"].startswith("q_")  # model-b wrote it
+    assert [row["state"] for row in world.chain.snapshot()][0] == "cooling_down"
+    assert world.fleet.question_calls()["model-b"] == 1
+
+
+def test_replace_with_every_model_limited_is_a_503_with_no_backup_left(world):
+    job_id = world.analysis()
+    world.ask(job_id)
+    for provider in world.fleet.providers.values():
+        provider.question_error = LLMCallError("Gemini rate limit reached (HTTP 429).")
+    response = world.call("POST", job_id, "/questions/replace")
     assert response.status == 503
     assert response.json()["error"] == {"code": "ai_rate_limited", "message": errors.MESSAGES["ai_rate_limited"],
-                                        "retryable": True, "fallback_available": True}
-    assert [row["state"] for row in world.chain.snapshot()][0] == "cooling_down"
-    world.fleet.providers["model-a"].question_error = None
-    assert world.call("POST", job_id, "/questions/replace").status == 200  # now model-b writes it
+                                        "retryable": True, "fallback_available": False}
+    assert [row["state"] for row in world.chain.snapshot()] == ["cooling_down"] * 3
 
 
 def test_replace_with_every_model_resting_makes_no_gemini_call(world):
@@ -551,5 +559,6 @@ def test_a_failed_replacement_reports_its_dropped_attempts_with_codes_only(world
     error = response.json()["error"]
     assert error["code"] == "no_replacement_available"
     assert error["dropped"] == [{"skill": "Python", "tier": "must_have", "repo": "orders-analysis",
-                                 "path": "notebooks/explore.ipynb", "attempts": 2, "reasons": ["wrong_file"]}]
+                                 "path": "notebooks/explore.ipynb", "attempts": 2, "reasons": ["wrong_file"],
+                                 "causes": []}]
     assert SECRET not in response.text

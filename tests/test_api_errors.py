@@ -8,6 +8,7 @@ from test_api_support import (FakeProvider, FakeScanner, FakeValidator, TECH_OK,
                               scan_item, settings)
 
 from api import errors, pipeline, retry
+from api.models import ModelChain
 from skillverify import GitHubConfigError
 from skillverify.jd.provider import LLMCallError, LLMConfigError
 from skillverify.scoring import ScoringConfigError
@@ -15,6 +16,7 @@ from skillverify.scoring import ScoringConfigError
 CLOSED_SET = {"invalid_input", "jd_unreadable", "cv_unreadable", "github_user_not_found", "github_unavailable",
               "ai_busy", "ai_rate_limited", "ai_all_limited", "ai_not_configured", "timeout", "internal_error"}
 DELAYS = (5, 10, 20)
+ONE = ("model-a",)  # a single model: nothing to hand over to, so a temporary failure is retried quietly in place
 
 
 @pytest.fixture
@@ -45,7 +47,7 @@ def test_the_outer_delays_are_one_constant():
 
 def test_two_temporary_failures_then_success_is_done(make_env, sleeps):
     provider = FakeProvider(failures=[LLMCallError("Gemini returned HTTP 503."), LLMCallError("Gemini returned HTTP 503.")])
-    env = make_env(provider=provider)
+    env = make_env(provider=provider, chain=ModelChain(ONE))
     job = env.run()
     assert job["state"] == "done" and job["error"] is None
     assert sleeps == [5, 10]  # exactly the first two outer delays
@@ -55,12 +57,12 @@ def test_two_temporary_failures_then_success_is_done(make_env, sleeps):
 @pytest.mark.parametrize("message", ["Gemini returned HTTP 500.", "Gemini returned HTTP 502.", "Gemini returned HTTP 504.",
                                      "Network problem while calling Gemini (ConnectionError)."])
 def test_other_temporary_failures_are_retried_too(make_env, sleeps, message):
-    env = make_env(provider=FakeProvider(failures=[LLMCallError(message)]))
+    env = make_env(provider=FakeProvider(failures=[LLMCallError(message)]), chain=ModelChain(ONE))
     assert env.run()["state"] == "done" and sleeps == [5]
 
 
 def test_the_user_sees_nothing_while_it_retries(make_env, monkeypatch):
-    env = make_env(provider=FakeProvider(failures=[LLMCallError("Gemini returned HTTP 503.")]))
+    env = make_env(provider=FakeProvider(failures=[LLMCallError("Gemini returned HTTP 503.")]), chain=ModelChain(ONE))
     seen = []
 
     def watch(seconds):
@@ -74,7 +76,7 @@ def test_the_user_sees_nothing_while_it_retries(make_env, monkeypatch):
 
 def test_a_service_that_stays_busy_ends_as_ai_busy(make_env, sleeps):
     provider = FakeProvider(always=LLMCallError("Gemini returned HTTP 503."))
-    env = make_env(provider=provider)
+    env = make_env(provider=provider, chain=ModelChain(ONE))
     error = failed_with(env.run(), "ai_busy", True)
     assert error["message"] == "The AI service is busy right now. Please try again."
     assert sleeps == [5, 10, 20]  # exactly 3 outer retries
@@ -82,17 +84,17 @@ def test_a_service_that_stays_busy_ends_as_ai_busy(make_env, sleeps):
 
 
 def test_a_busy_service_on_the_cv_call_is_the_same_error(make_env, sleeps):
-    env = make_env(provider=FakeProvider(cv_error=LLMCallError("Gemini returned HTTP 502.")))
+    env = make_env(provider=FakeProvider(cv_error=LLMCallError("Gemini returned HTTP 502.")), chain=ModelChain(ONE))
     failed_with(env.run(), "ai_busy", True)
     assert sleeps == [5, 10, 20]
 
 
-def test_http_429_is_not_retried(make_env, sleeps):
+def test_http_429_is_not_retried_in_place(make_env, sleeps):
     provider = FakeProvider(always=LLMCallError("Gemini rate limit reached (HTTP 429). Wait a while and try again."))
     env = make_env(provider=provider)
     error = failed_with(env.run(), "ai_rate_limited", True)
     assert error["message"] == "The AI service's request limit was reached. Wait a little while and try again."
-    assert sleeps == [] and provider.calls == 1
+    assert sleeps == [] and provider.calls == 3  # no quiet retry: each of the 3 models was tried once, then it ended
 
 
 @pytest.mark.parametrize("message", [

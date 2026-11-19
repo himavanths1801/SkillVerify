@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from api import jobs, pipeline, retry, settings
+from api import jobs, pacing, pipeline, retry, settings
 from api.models import ModelChain
 from api.app import create_app
 from skillverify.cv import prompts as cv_prompts
@@ -104,7 +104,7 @@ class Env:
     """An app wired to fakes, plus a client."""
 
     def __init__(self, provider=None, validator=None, scanner=None, provider_factory=None, validator_factory=None,
-                 chain=None, files_factory=None):
+                 chain=None, files_factory=None, questions_chain=None, groq_factory=None, store=None):
         self.provider = provider or FakeProvider()
         self.validator = validator or FakeValidator()
         self.scanner = scanner or FakeScanner()
@@ -113,6 +113,9 @@ class Env:
             validator_factory=validator_factory or (lambda: self.validator),
             scanner_factory=lambda validator, taxonomy: self.scanner,
             chain=chain or ModelChain(CHAIN),
+            questions_chain=questions_chain,
+            store=store,
+            groq_factory=groq_factory or (lambda name: pytest.fail("the question code reached for Groq")),
             files_client_factory=files_factory or (lambda: pytest.fail("the question code reached for GitHub")))
         self.app = create_app(deps)
         self.manager = self.app.state.jobs
@@ -151,10 +154,27 @@ class Env:
         raise AssertionError("the job did not finish in time")
 
 
+class FakeTime:
+    """The clock and the sleep of the question writer in tests: a sleep moves the clock, nothing really waits."""
+
+    def __init__(self):
+        self.now, self.slept = 1000.0, []
+
+    def __call__(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.slept.append(seconds)
+        self.now += seconds
+
+
 @pytest.fixture
 def make_env(monkeypatch):
     """Factory for environments; every job store is shut down at the end. Nothing really sleeps."""
     monkeypatch.setattr(retry, "_sleep", lambda seconds: None)
+    fake_time = FakeTime()
+    monkeypatch.setattr(pacing, "_clock", fake_time)
+    monkeypatch.setattr(pacing, "_sleep", fake_time.sleep)
     monkeypatch.setattr(settings, "_limits_cache", settings.load_limits({}))  # the defaults; .env is never read
     made = []
 
@@ -163,6 +183,7 @@ def make_env(monkeypatch):
         made.append(env)
         return env
 
+    build.time = fake_time
     yield build
     for env in made:
         env.manager.shutdown()

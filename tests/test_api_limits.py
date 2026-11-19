@@ -10,7 +10,10 @@ from test_api_support import FakeValidator, github_ok, make_env, rescored  # noq
 from api import errors, jobs, pipeline, repocap, settings
 from api.jobs import JobManager
 
-DEFAULT_LIMITS = {"analysis_timeout_seconds": 360, "questions_timeout_seconds": 360, "scan_max_repos": 30}
+DEFAULT_LIMITS = {"analysis_timeout_seconds": 360, "questions_timeout_seconds": 360, "scan_max_repos": 30,
+                  "questions_min_gap_seconds": 3, "questions_max_wait_seconds": 25, "reading_min_gap_seconds": 2,
+                  "reading_max_wait_seconds": 20, "questions_max_output_tokens": 0, "saved_results_days": 14}
+HEALTH_LIMITS = {name: value for name, value in DEFAULT_LIMITS.items() if name != "saved_results_days"}
 
 
 # --------------------------------------------------------------------------
@@ -25,8 +28,8 @@ def test_defaults_when_nothing_is_set(caplog):
 
 def test_valid_values_are_used_including_the_edges():
     env = {"ANALYSIS_TIMEOUT_SECONDS": " 30 ", "QUESTIONS_TIMEOUT_SECONDS": "1800", "SCAN_MAX_REPOS": "200"}
-    assert settings.load_limits(env) == {"analysis_timeout_seconds": 30, "questions_timeout_seconds": 1800,
-                                         "scan_max_repos": 200}
+    assert settings.load_limits(env) == {**DEFAULT_LIMITS, "analysis_timeout_seconds": 30,
+                                         "questions_timeout_seconds": 1800, "scan_max_repos": 200}
     assert settings.load_limits({"SCAN_MAX_REPOS": "5"})["scan_max_repos"] == 5
 
 
@@ -65,7 +68,7 @@ def test_health_shows_the_limits_as_numbers_and_no_key_text(make_env, monkeypatc
     env = make_env()
     response = env.client.request("GET", "/api/health")
     body = response.json()
-    assert body["limits"] == DEFAULT_LIMITS and all(isinstance(v, int) for v in body["limits"].values())
+    assert body["limits"] == HEALTH_LIMITS and all(isinstance(v, int) for v in body["limits"].values())
     assert "KEY-TEXT-123" not in response.text and "TOKEN-TEXT-456" not in response.text
 
 

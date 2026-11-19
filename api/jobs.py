@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
-from api import errors, pipeline, settings
+from api import errors, pipeline, settings, storage
 
 log = logging.getLogger("skillverify.api")
 
@@ -23,13 +23,13 @@ class StoreFullError(Exception):
 
 def blank_meta() -> dict:
     return {"candidate_name": None, "job_title": None, "model": None, "fallback_used": False,
-            "scan": None, "timings": {}}
+            "scan": None, "timings": {}, "readers": {"jd": None, "cv": None}}
 
 
 @dataclass
 class Job:
     id: str
-    inputs: pipeline.JobInputs
+    inputs: Optional[pipeline.JobInputs]  # None for an analysis loaded from disk (it cannot be retried)
     created: float
     state: str = QUEUED
     stage: str = pipeline.STAGE_QUEUED
@@ -42,12 +42,15 @@ class Job:
     # The stage being timed (None before the first stage) and when it began.
     timed_stage: Optional[str] = None
     timed_since: float = 0.0
+    saved: bool = False  # written to disk: kept in memory past the time-to-live (the saved copy has its own retention)
 
 
 class JobManager:
     def __init__(self, deps: Optional[pipeline.Dependencies] = None,
-                 runner: Callable[..., pipeline.PipelineOutput] = pipeline.run_pipeline) -> None:
+                 runner: Callable[..., pipeline.PipelineOutput] = pipeline.run_pipeline,
+                 store: Optional[storage.Store] = None) -> None:
         self._deps = deps if deps is not None else pipeline.default_dependencies()
+        self._store = store if store is not None else getattr(self._deps, "store", None)
         self._runner = runner
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
@@ -60,7 +63,7 @@ class JobManager:
     def _purge(self) -> None:
         """Drop jobs older than the time-to-live. The caller holds the lock."""
         cutoff = _now() - settings.JOB_TTL_SECONDS
-        for job_id in [j.id for j in self._jobs.values() if j.created < cutoff]:
+        for job_id in [j.id for j in self._jobs.values() if j.created < cutoff and not j.saved]:
             del self._jobs[job_id]
 
     def create(self, inputs: pipeline.JobInputs) -> str:
@@ -78,10 +81,22 @@ class JobManager:
         self._submit(job.id, attempt)
         return job.id
 
+    def _find(self, job_id: str) -> Optional[Job]:
+        """The job, from memory or else loaded from the saved results. The caller holds the lock."""
+        job = self._jobs.get(job_id)
+        if job is None and self._store is not None:
+            row = self._store.load_analysis(job_id)
+            if row is not None:
+                job = Job(id=job_id, inputs=None, created=row["created"], state=DONE, stage=pipeline.STAGE_DONE,
+                          result=row["result"], meta={**blank_meta(), **row["meta"]}, saved=True,
+                          intermediates={"github": row["evidence"]} if row["evidence"] else {})
+                self._jobs[job_id] = job
+        return job
+
     def snapshot(self, job_id: str) -> Optional[dict[str, Any]]:
         with self._lock:
             self._purge()
-            job = self._jobs.get(job_id)
+            job = self._find(job_id)
             if job is None:
                 return None
             return {"id": job.id, "state": job.state, "stage": job.stage, "result": job.result, "error": job.error,
@@ -90,14 +105,14 @@ class JobManager:
     def intermediates(self, job_id: str) -> Optional[dict]:
         """The JD, CV and GitHub results of a finished job (for the later question generator)."""
         with self._lock:
-            job = self._jobs.get(job_id)
+            job = self._find(job_id)
             return dict(job.intermediates) if job is not None else None
 
     def retry(self, job_id: str) -> Optional[bool]:
         """None: unknown id. False: not retryable. True: a fresh run started from the stored inputs."""
         with self._lock:
             self._purge()
-            job = self._jobs.get(job_id)
+            job = self._find(job_id)
             if job is None:
                 return None
             if job.state != FAILED or not (job.error and job.error["retryable"]):
@@ -163,6 +178,10 @@ class JobManager:
                 error = outcome.get("error")
             if error is None:
                 out = outcome["output"]
+                if self._store is not None and isinstance(out.result, dict) and out.result.get("status") == "ok":
+                    # a good finished analysis is on disk BEFORE anyone can read "done": it survives a restart
+                    job.saved = self._store.save_analysis(job.id, job.created, out.result, dict(job.meta),
+                                                          storage.question_evidence(out.github))
                 job.state, job.stage, job.result = DONE, pipeline.STAGE_DONE, out.result
                 job.intermediates = {"jd": out.jd, "cv": out.cv, "github": out.github}
                 log.info("job %s done", job_id)
