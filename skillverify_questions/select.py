@@ -9,7 +9,7 @@ from typing import Any, Iterable, Optional
 from skillverify.github_validator import parse_github_date
 from skillverify_questions import config, files
 from skillverify_questions.reasons import MUST_HAVE
-from skillverify_questions.signals import Signals
+from skillverify_questions.signals import Signals, extension_allowed
 
 _OLDEST = datetime.min.replace(tzinfo=timezone.utc)
 
@@ -161,10 +161,13 @@ def prepare_text(path: str, raw: str) -> Optional[tuple[str, str]]:
 
 
 def rank_for_skill(skill: str, candidates: Iterable[FileCandidate], signals: Signals) -> list[FileCandidate]:
-    """The best files for one skill, best first. Tie-break order: higher logic score, more skill-signal lines,
+    """The best files for one skill, best first (only files whose extension can show the skill, see
+    ``config.SKILL_EXTENSIONS``). Tie-break order: higher logic score, more skill-signal lines,
     repo pushed more recently, repo name and path alphabetical."""
     scored = []
     for candidate in candidates:
+        if not extension_allowed(skill, candidate.path):  # a file that cannot show this skill is never offered for it
+            continue
         lines = signals.count(skill, candidate.language, candidate.text)
         if lines > 0:
             scored.append(FileCandidate(candidate.repo, candidate.path, candidate.language, candidate.text,

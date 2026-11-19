@@ -39,6 +39,7 @@ CONTROL_FLOW_CAP = 60
 # WHAT GOES TO GEMINI
 # ============================================================================
 MAX_PROMPT_CODE_LINES = 250        # the file is cut to this many lines in the prompt (checks use the whole file)
+WRITER_SETTINGS_VERSION = 1        # bump when the prompt, the checks or the selection rules change: saved question sets stop matching
 MAX_QUESTION_ATTEMPTS = 2          # Gemini calls per question: the first try plus ONE repair
 
 # ============================================================================
@@ -150,6 +151,37 @@ DROP_REASON_CODES = ("bad_json", "bad_length", "wrong_file", "unknown_file_refer
                      "unknown_call", "url_or_email", "secret_like", "duplicate", "fix_without_starter",
                      "not_sql_starter", "unknown_sql_name", "no_real_sql_in_file",
                      "fix_without_example", "fix_example_vacuous", "fix_not_modified")
+# Why a model's answer was unusable JSON (a closed set; added to a dropped entry as ``causes``, never any content):
+#   empty_response  the provider returned no text
+#   cut_off         the provider said the output limit was reached, or the braces never balance
+#   not_json        text without a JSON object in it
+#   wrong_shape     JSON, but not an object, or a required field is missing or has the wrong type
+ANSWER_CAUSES = ("empty_response", "cut_off", "not_json", "wrong_shape")
+
+# ============================================================================
+# WHICH FILES CAN SHOW A SKILL
+# Skill name (lower case, as in the taxonomy) -> the extensions of files that can realistically show it. A file with any
+# other extension is never a candidate for that skill and never reaches the model. A skill that is NOT listed is
+# unrestricted, exactly as before: the list is deliberately conservative (never guess), so extend it as evidence
+# comes in. SQL is not listed on purpose: it keeps its own rules (see SQL QUESTIONS above).
+# ============================================================================
+_PY = (".py",)
+_PY_DATA = (".py", ".ipynb")           # notebooks are where pandas / numpy work usually lives
+_JS = (".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx")
+_REACT = (".jsx", ".tsx", ".js", ".ts")
+_STYLE = (".css", ".scss", ".sass", ".less", ".html", ".jsx", ".tsx", ".vue", ".svelte")
+SKILL_EXTENSIONS: dict[str, tuple[str, ...]] = {
+    "python": _PY_DATA, "pandas": _PY_DATA, "numpy": _PY_DATA,
+    "flask": _PY, "django": _PY, "fastapi": _PY, "pytest": _PY, "selenium": _PY, "beautifulsoup": _PY, "scrapy": _PY,
+    "javascript": _JS, "node.js": _JS, "express": _JS, "express.js": _JS, "jest": _JS, "redux": _JS,
+    "typescript": (".ts", ".tsx"),
+    "react": _REACT, "next.js": _REACT,
+    "html": (".html", ".htm", ".jsx", ".tsx", ".vue", ".svelte", ".ejs"),
+    "css": _STYLE, "sass": _STYLE, "tailwind css": _STYLE,
+    "java": (".java",), "c#": (".cs",), "go": (".go",), "rust": (".rs",), "php": (".php",), "ruby": (".rb",),
+    "kotlin": (".kt",),
+}
+
 FAILING_EXAMPLE_MAX_CHARS = 120    # each of input / expected / actual of a fix question's failing example
 EXAMPLE_SENTENCE = "Example: {input} should give {expected}, but the starter code gives {actual}."
 

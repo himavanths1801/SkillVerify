@@ -59,6 +59,16 @@ def embedded_sql_statements(text: str, language: str) -> int:
     return total
 
 
+def extension_allowed(skill: str, path: str) -> bool:
+    """False when the skill is in ``config.SKILL_EXTENSIONS`` and the file's extension is not one that can show it.
+
+    A skill that is not in the map is unrestricted (True). The skill name is matched case-insensitively. Plain code,
+    no AI: a file that fails this is never a candidate for the skill, so it never reaches the model.
+    """
+    allowed = config.SKILL_EXTENSIONS.get(skill.strip().lower())
+    return allowed is None or files.extension_of(path) in allowed
+
+
 class Signals:
     """Counts the lines of a file that show a skill."""
 

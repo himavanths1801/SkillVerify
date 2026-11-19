@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional, Sequence
 
 from skillverify.jd.provider import LLMCallError
-from skillverify_questions import config, files
+from skillverify_questions import answer as answer_text, config, files
 from skillverify_questions.select import FileCandidate
 from skillverify_questions.signals import embedded_sql_statements
 
@@ -302,42 +302,63 @@ def check(answer: Any, candidate: FileCandidate, tree_paths: set[str], earlier: 
 _ANSWER_SHAPE = re.compile(r"not valid JSON|no usable answer|not an object")
 
 
+# Checks that mean "the answer was JSON but its shape was wrong" (the cause ``wrong_shape``).
+_SHAPE_CHECKS = frozenset({INVALID_JSON, WRONG_TYPES, KIND_INVALID})
+
+
 @dataclass
 class Written:
     question: Optional[dict]
     calls: int
     problems: list[str]                                       # the final attempt's failed checks
     first_problems: list[str] = field(default_factory=list)   # the first attempt's failed checks
+    final_causes: list[str] = field(default_factory=list)     # why the final attempt's answer was unusable JSON
+    first_causes: list[str] = field(default_factory=list)     # the same for the first attempt (when it differs)
 
     @property
     def reasons(self) -> list[str]:
         """Drop-reason codes: the final attempt's, then the first attempt's that differ. No duplicates."""
         return list(dict.fromkeys(REASON_CODE[name] for name in self.problems + self.first_problems))
 
+    @property
+    def causes(self) -> list[str]:
+        """Answer-cause codes (``config.ANSWER_CAUSES``): the final attempt's, then the first attempt's. No duplicates."""
+        return list(dict.fromkeys(self.final_causes + self.first_causes))
+
 
 def write_question(provider: Any, candidate: FileCandidate, skill: str, tree_paths: set[str],
                    earlier: set[str], repo_texts: Sequence[str] = ()) -> Written:
     """One call, and ONE repair call that lists the failed checks. Returns the question or None (dropped).
 
-    Gemini failures other than "the answer was not usable JSON" (rate limit, outage, key problem) are raised as
-    they are, for the caller to map; nothing partial is kept.
+    Before the repair call the provider (when it has ``repair_elsewhere``) is asked to use a different model than the
+    first attempt, if another one is ready. Gemini failures other than "the answer was not usable JSON" (rate limit,
+    outage, key problem) are raised as they are, for the caller to map; nothing partial is kept.
     """
     problems: list[str] = []
+    causes: list[str] = []
     first: list[str] = []
+    first_causes: list[str] = []
     calls = 0
     for _ in range(config.MAX_QUESTION_ATTEMPTS):
         calls += 1
+        if calls > 1:
+            elsewhere = getattr(provider, "repair_elsewhere", None)
+            if elsewhere is not None:
+                elsewhere()
         try:
             answer = provider.generate_json(SYSTEM_PROMPT, build_prompt(candidate, skill, problems or None))
         except LLMCallError as exc:
             if not _ANSWER_SHAPE.search(str(exc)):
                 raise
-            problems = [INVALID_JSON]
+            problems, causes = [INVALID_JSON], [answer_text.cause_of(exc)]
         else:
             checked = check(answer, candidate, tree_paths, earlier, skill, repo_texts)
             if checked.question is not None:
                 return Written(checked.question, calls, [])
             problems = checked.problems
+            causes = [answer_text.WRONG_SHAPE] if _SHAPE_CHECKS & set(problems) else []
         if calls == 1:
-            first = problems
-    return Written(None, calls, problems, first if calls > 1 and first != problems else [])
+            first, first_causes = problems, causes
+    repaired = calls > 1
+    return Written(None, calls, problems, first if repaired and first != problems else [],
+                   causes, first_causes if repaired else [])

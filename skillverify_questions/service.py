@@ -40,6 +40,8 @@ class RunState:
     dropped: int = 0
     drops: list[dict] = field(default_factory=list)   # metadata and reason codes only
     asked: set[str] = field(default_factory=set)      # skills that have a question
+    models_used: dict[str, int] = field(default_factory=dict)  # model -> questions it wrote (kept across a resume)
+    fallbacks: int = 0                                          # handovers from one model to the next
 
 
 def new_id() -> str:
@@ -54,8 +56,13 @@ def _noop(_: str) -> None:
 # choose code and read files (the only part that talks to GitHub)
 # --------------------------------------------------------------------------
 def prepare(score_skills: Any, github: Any, files_client: Any, signals: Signals,
-            set_stage: Callable[[str], None] = _noop) -> Prepared:
-    """Filter, fetch and rank. Raises whatever the files client raises (a plain GitHub error); nothing partial is kept."""
+            set_stage: Callable[[str], None] = _noop, cache: Any = None) -> Prepared:
+    """Filter, fetch and rank. Raises whatever the files client raises (a plain GitHub error); nothing partial is kept.
+
+    ``cache`` (optional, ``get_file(repo, path, stamp)`` / ``put_file(repo, path, stamp, text)``) answers file reads
+    before GitHub is asked; a miss is fetched as usual and then stored. The stamp is the repo's last push date, so a
+    changed repo misses. Hits and misses are logged as counts only.
+    """
     set_stage(STAGE_CHOOSING)
     needs, skipped = select.candidate_skills(score_skills if isinstance(score_skills, list) else [])
     counts = {"candidates_skills": len(needs), "repos_considered": 0, "files_fetched": 0, "files_ranked": 0}
@@ -70,6 +77,7 @@ def prepare(score_skills: Any, github: Any, files_client: Any, signals: Signals,
     candidates: list[select.FileCandidate] = []
     repo_texts: dict[str, list[str]] = {}
     fetched = 0
+    hits = misses = 0
     for repo in repos:
         branch = repo.default_branch or files_client.default_branch(owner, repo.name)
         if not branch:
@@ -78,7 +86,15 @@ def prepare(score_skills: Any, github: Any, files_client: Any, signals: Signals,
         trees[repo.name] = {e["path"] for e in entries if e.get("type") == "blob" and isinstance(e.get("path"), str)}
         room = min(config.MAX_FILES_PER_REPO_FETCHED, config.MAX_FILE_FETCHES - fetched)
         for path in select.fetch_order(select.filter_tree(entries), max(room, 0)):
-            raw = files_client.file_text(owner, repo.name, path, branch)
+            full_name = f"{owner}/{repo.name}"
+            raw = cache.get_file(full_name, path, repo.pushed_at) if cache is not None else None
+            if raw is not None:
+                hits += 1
+            else:
+                raw = files_client.file_text(owner, repo.name, path, branch)
+                if cache is not None and raw is not None:
+                    misses += 1
+                    cache.put_file(full_name, path, repo.pushed_at, files.redact(raw))  # secrets never reach the cache
             fetched += 1
             if raw is not None:  # kept for the SQL name check; nothing more is fetched later
                 kept = files.notebook_code(raw) if files.extension_of(path) == ".ipynb" else raw
@@ -89,6 +105,8 @@ def prepare(score_skills: Any, github: Any, files_client: Any, signals: Signals,
                 candidates.append(select.FileCandidate(repo.name, path, language, text,
                                                        files.logic_score(text, language), 0, repo.pushed_at))
     counts.update(files_fetched=fetched, files_ranked=len(candidates))
+    if cache is not None:
+        log.info("file cache hits=%d misses=%d", hits, misses)
     ranked = {need.skill: select.rank_for_skill(need.skill, candidates, signals) for need in needs}
     selection = select.select(needs, ranked)
     selection.skipped = skipped + selection.skipped
@@ -143,46 +161,102 @@ def _try(prepared: Prepared, state: RunState, pick: select.Pick, provider: Any,
         state.dropped += 1
         reasons = written.reasons
         state.drops.append({"skill": pick.need.skill, "tier": pick.need.tier, "repo": pick.file.repo,
-                            "path": pick.file.path, "attempts": written.calls, "reasons": reasons})
-        log.info("question dropped skill=%s reasons=%s", pick.need.skill, ",".join(reasons))
+                            "path": pick.file.path, "attempts": written.calls, "reasons": reasons,
+                            "causes": written.causes})
+        log.info("question dropped skill=%s reasons=%s causes=%s", pick.need.skill, ",".join(reasons),
+                 ",".join(written.causes) or "none")
         _settle(state, pick, False)
         return None
     state.earlier.add(normalise_for_duplicates(written.question["question"]))
     _settle(state, pick, True)
+    credit = getattr(provider, "note_question", None)  # which model wrote it (a real provider chain; fakes have none)
+    if credit is not None:
+        credit()
     return _question_object(pick, written.question, make_id)
+
+
+def new_state(prepared: Prepared) -> RunState:
+    """The empty state of a run (what write_all starts from, and what a failed run keeps so a retry can continue)."""
+    return RunState(skipped=[dict(s) for s in prepared.selection.skipped])
+
+
+def status_and_message(count: int) -> tuple[str, Optional[str]]:
+    """The result status and the fixed sentence for a number of questions."""
+    if count >= config.MIN_QUESTIONS:
+        return "ok", None
+    if count == 0:
+        return "none", config.MESSAGE_NONE
+    return "too_few", config.MESSAGE_TOO_FEW.format(n=count, min=config.MIN_QUESTIONS)
+
+
+def with_replacements(result: dict, extra: int) -> dict:
+    """A copy of a saved result as the screen shows it: ``extra`` replacement questions (saved beside the run) count.
+
+    ``message``, ``counts.questions`` and ``status`` follow the effective count (the run's questions plus the
+    replacements); nothing else changes and the saved original is never rewritten. No replacements: the result as it is.
+    """
+    if extra <= 0 or not isinstance(result, dict) or not isinstance(result.get("questions"), list):
+        return result
+    count = len(result["questions"]) + extra
+    status, message = status_and_message(count)
+    counts = {**result["counts"], "questions": count} if isinstance(result.get("counts"), dict) else {"questions": count}
+    return {**result, "status": status, "message": message, "counts": counts}
+
+
+def build_result(prepared: Prepared, state: RunState,
+                 now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> dict:
+    """The questions ``result`` for the state so far (a finished run, or a partial one)."""
+    count = len(state.questions)
+    status, message = status_and_message(count)
+    return {"schema_version": SCHEMA_VERSION, "status": status, "message": message,
+            "generated_at": now().isoformat(timespec="seconds"),
+            "limits": {"min": config.MIN_QUESTIONS, "max": config.MAX_QUESTIONS},
+            "questions": state.questions, "skipped_skills": state.skipped,
+            "dropped": [dict(d) for d in state.drops],
+            "counts": {**prepared.counts, "questions": count, "dropped": len(state.drops)}}
+
+
+def state_from_result(result: dict, replacements: Optional[list] = None, meta: Optional[dict] = None) -> RunState:
+    """Rebuild a run state from a saved result (and the replacements written later), so a run that was loaded from disk
+    can be continued or can write a replacement without using a file twice."""
+    questions = [q for q in result.get("questions", []) if isinstance(q, dict)]
+    extra = [r["question"] for r in (replacements or []) if isinstance(r, dict) and isinstance(r.get("question"), dict)]
+    drops = [dict(d) for d in result.get("dropped", []) if isinstance(d, dict)]
+    used = {(q["why"]["repo"], q["why"]["path"]) for q in questions + extra if isinstance(q.get("why"), dict)}
+    used |= {(d.get("repo"), d.get("path")) for d in drops}
+    earlier = {normalise_for_duplicates(q["question"]) for q in questions + extra if isinstance(q.get("question"), str)}
+    used_models = meta.get("models_used") if isinstance(meta, dict) and isinstance(meta.get("models_used"), dict) else {}
+    return RunState(questions=list(questions), skipped=[dict(s) for s in result.get("skipped_skills", [])],
+                    used=used, earlier=earlier, dropped=len(drops), drops=drops,
+                    asked={q["why"]["skill"] for q in questions + extra if isinstance(q.get("why"), dict)},
+                    models_used=dict(used_models),
+                    fallbacks=int(meta.get("fallbacks", 0)) if isinstance(meta, dict) else 0)
 
 
 def write_all(prepared: Prepared, provider: Any, set_stage: Callable[[str], None] = _noop,
               make_id: Callable[[], str] = new_id,
-              now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> tuple[dict, RunState]:
-    """Write the questions for the selected files; a dropped question is replaced from the reserve."""
-    state = RunState(skipped=[dict(s) for s in prepared.selection.skipped])
+              now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+              state: Optional[RunState] = None) -> tuple[dict, RunState]:
+    """Write the questions for the selected files; a dropped question is replaced from the reserve.
+
+    ``state`` continues a run that ended early: files already used stay used and the questions already written stay.
+    """
+    state = state if state is not None else new_state(prepared)
     target = len(prepared.selection.picks)
     queue = prepared.selection.picks + prepared.selection.reserve
     set_stage(STAGE_WRITING)
-    attempted = 0
+    attempted = len(state.used)
     for pick in queue:
         if len(state.questions) >= target or attempted >= config.MAX_QUESTIONS + config.MAX_REPLACEMENT_CANDIDATES:
             break
+        if pick.file.key in state.used:
+            continue
         attempted += 1
         question = _try(prepared, state, pick, provider, make_id)
         if question is not None:
             state.questions.append(question)
     set_stage(STAGE_CHECKING)
-    count = len(state.questions)
-    if count >= config.MIN_QUESTIONS:
-        status, message = "ok", None
-    elif count == 0:
-        status, message = "none", config.MESSAGE_NONE
-    else:
-        status, message = "too_few", config.MESSAGE_TOO_FEW.format(n=count, min=config.MIN_QUESTIONS)
-    result = {"schema_version": SCHEMA_VERSION, "status": status, "message": message,
-              "generated_at": now().isoformat(timespec="seconds"),
-              "limits": {"min": config.MIN_QUESTIONS, "max": config.MAX_QUESTIONS},
-              "questions": state.questions, "skipped_skills": state.skipped,
-              "dropped": [dict(d) for d in state.drops],
-              "counts": {**prepared.counts, "questions": count, "dropped": len(state.drops)}}
-    return result, state
+    return build_result(prepared, state, now), state
 
 
 def replace_one(prepared: Prepared, state: RunState, provider: Any,

@@ -439,7 +439,7 @@ def dropping_run(caplog=None):
 def test_the_dropped_list_has_the_documented_shape_and_counts_match():
     _, provider, (result, state) = dropping_run()
     assert result["dropped"] == [{"skill": "SQL", "tier": "must_have", "repo": "medstock", "path": "api/src/stock.ts",
-                                  "attempts": 2, "reasons": ["unknown_symbol", "unknown_sql_name"]}]
+                                  "attempts": 2, "reasons": ["unknown_symbol", "unknown_sql_name"], "causes": []}]
     assert result["counts"]["dropped"] == len(result["dropped"]) == 1
     assert set(result["dropped"][0]["reasons"]) <= set(config.DROP_REASON_CODES)
     assert result["schema_version"] == 1
@@ -452,7 +452,7 @@ def test_no_content_leaks_into_the_result_json_or_the_logs(caplog):
     for secret in ("reorder_rules", "SECRET-NOTES", "suppliers", "lowStock", "SELECT", "stock_levels"):
         assert secret not in dropped_json
     lines = [r.getMessage() for r in caplog.records if r.name == "skillverify.questions"]
-    assert lines == ["question dropped skill=SQL reasons=unknown_symbol,unknown_sql_name"]
+    assert lines == ["question dropped skill=SQL reasons=unknown_symbol,unknown_sql_name causes=none"]
     for secret in ("reorder_rules", "SECRET-NOTES", "suppliers", "lowStock", "SELECT"):
         assert secret not in caplog.text
 
