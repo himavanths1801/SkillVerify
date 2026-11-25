@@ -293,11 +293,12 @@ def run_with(answers, caplog):
 def test_dropped_entries_carry_the_causes_and_the_log_line_only_codes(caplog):
     result = run_with([problem("cut_off"), problem("empty_response")], caplog)
     assert result["dropped"] == [{"skill": "Python", "tier": "must_have", "repo": "orders-analysis", "path": "analysis.py",
-                                  "attempts": 2, "reasons": ["bad_json"], "causes": ["empty_response", "cut_off"]}]
+                                  "attempts": 2, "reasons": ["bad_json"], "causes": ["empty_response", "cut_off"],
+                                  "shape_fields": []}]
     assert set(result["dropped"][0]["causes"]) <= set(config.ANSWER_CAUSES)
     assert result["schema_version"] == 1
     lines = [r.getMessage() for r in caplog.records if r.name == "skillverify.questions"]
-    assert lines == ["question dropped skill=Python reasons=bad_json causes=empty_response,cut_off"]
+    assert lines == ["question dropped skill=Python reasons=bad_json causes=empty_response,cut_off shape_fields=none"]
 
 
 def test_no_answer_text_reaches_the_result_or_the_logs(caplog):

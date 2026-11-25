@@ -4,6 +4,7 @@ The fictional MedStock repo mirrors a live run: a connection-pool file (one ``SE
 service file with two embedded queries.
 """
 import logging
+import re
 
 import pytest
 from test_questions_support import (FakeFiles, FakeWriter, github_result, good_answer, repo_record, skill_row,
@@ -366,7 +367,7 @@ def test_the_repair_can_fix_a_bad_name_and_a_second_failure_drops_it():
 # --------------------------------------------------------------------------
 def test_every_problem_maps_to_one_code_of_the_closed_set_and_every_code_is_produced():
     assert set(writer.REASON_CODE.values()) == set(config.DROP_REASON_CODES)
-    assert len(config.DROP_REASON_CODES) == 16
+    assert len(config.DROP_REASON_CODES) == 18
     assert set(writer.REASON_CODE) == set(writer.PROBLEM_TEXT)
 
 
@@ -439,7 +440,8 @@ def dropping_run(caplog=None):
 def test_the_dropped_list_has_the_documented_shape_and_counts_match():
     _, provider, (result, state) = dropping_run()
     assert result["dropped"] == [{"skill": "SQL", "tier": "must_have", "repo": "medstock", "path": "api/src/stock.ts",
-                                  "attempts": 2, "reasons": ["unknown_symbol", "unknown_sql_name"], "causes": []}]
+                                  "attempts": 2, "reasons": ["unknown_symbol", "unknown_sql_name"], "causes": [],
+                                  "shape_fields": []}]
     assert result["counts"]["dropped"] == len(result["dropped"]) == 1
     assert set(result["dropped"][0]["reasons"]) <= set(config.DROP_REASON_CODES)
     assert result["schema_version"] == 1
@@ -452,7 +454,10 @@ def test_no_content_leaks_into_the_result_json_or_the_logs(caplog):
     for secret in ("reorder_rules", "SECRET-NOTES", "suppliers", "lowStock", "SELECT", "stock_levels"):
         assert secret not in dropped_json
     lines = [r.getMessage() for r in caplog.records if r.name == "skillverify.questions"]
-    assert lines == ["question dropped skill=SQL reasons=unknown_symbol,unknown_sql_name causes=none"]
+    assert [l for l in lines if not l.startswith("starter question=")] == [
+        "question dropped skill=SQL reasons=unknown_symbol,unknown_sql_name causes=none shape_fields=none"]
+    assert all(re.fullmatch(r"starter question=q_\w+ lines=\d+ source=(code|model|none)", l)
+               for l in lines if l.startswith("starter"))
     for secret in ("reorder_rules", "SECRET-NOTES", "suppliers", "lowStock", "SELECT"):
         assert secret not in caplog.text
 

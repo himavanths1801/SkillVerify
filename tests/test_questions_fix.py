@@ -186,9 +186,10 @@ def test_a_valid_fix_question_has_the_object_and_a_dropped_one_has_its_code(capl
     result, _ = fix_run([bad, bad])
     assert result["questions"] == []
     assert result["dropped"] == [{"skill": "Python", "tier": "must_have", "repo": "app", "path": "src/app/dates.py",
-                                  "attempts": 2, "reasons": ["fix_example_vacuous"], "causes": []}]
+                                  "attempts": 2, "reasons": ["fix_example_vacuous"], "causes": [],
+                                  "shape_fields": []}]
     assert "SECRET-X" not in repr(result) and "SECRET-X" not in caplog.text
-    assert "question dropped skill=Python reasons=fix_example_vacuous causes=none" in caplog.text
+    assert "question dropped skill=Python reasons=fix_example_vacuous causes=none shape_fields=none" in caplog.text
     assert "head(0)" not in caplog.text and "customer_id" not in caplog.text
 
 

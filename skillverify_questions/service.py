@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
-from skillverify_questions import config, files, select
+from skillverify_questions import config, excerpt, files, select
 from skillverify_questions.reasons import reason_for
 from skillverify_questions.signals import Signals
 from skillverify_questions.writer import normalise_for_duplicates, write_question
@@ -42,6 +42,10 @@ class RunState:
     asked: set[str] = field(default_factory=set)      # skills that have a question
     models_used: dict[str, int] = field(default_factory=dict)  # model -> questions it wrote (kept across a resume)
     fallbacks: int = 0                                          # handovers from one model to the next
+    normalised: int = 0                                         # normalising steps that fired (a count, no content)
+    starter_built: int = 0                                      # write questions whose starter code was cut from the file
+    starter_empty: int = 0                                      # write questions that have no starter code
+    hints_stripped: int = 0                                     # comments removed from fix starters (a count, no text)
 
 
 def new_id() -> str:
@@ -157,22 +161,43 @@ def _try(prepared: Prepared, state: RunState, pick: select.Pick, provider: Any,
     except BaseException:  # a Gemini outage says nothing about the file: it stays available for the next try
         state.used.discard(pick.file.key)
         raise
+    if written.normalised:
+        state.normalised += len(written.normalised)
+        log.info("answer normalised skill=%s codes=%s", pick.need.skill, ",".join(written.normalised))
     if written.question is None:
         state.dropped += 1
         reasons = written.reasons
         state.drops.append({"skill": pick.need.skill, "tier": pick.need.tier, "repo": pick.file.repo,
                             "path": pick.file.path, "attempts": written.calls, "reasons": reasons,
-                            "causes": written.causes})
-        log.info("question dropped skill=%s reasons=%s causes=%s", pick.need.skill, ",".join(reasons),
-                 ",".join(written.causes) or "none")
+                            "causes": written.causes, "shape_fields": written.shape_fields})
+        log.info("question dropped skill=%s reasons=%s causes=%s shape_fields=%s", pick.need.skill, ",".join(reasons),
+                 ",".join(written.causes) or "none", ",".join(written.shape_fields) or "none")
         _settle(state, pick, False)
         return None
     state.earlier.add(normalise_for_duplicates(written.question["question"]))
     _settle(state, pick, True)
+    made = _question_object(pick, written.question, make_id)
+    _starter(prepared, state, pick, made)
+    if written.hints_stripped:
+        state.hints_stripped += written.hints_stripped
+        log.info("starter question=%s hints_stripped=%d", made["id"], written.hints_stripped)
     credit = getattr(provider, "note_question", None)  # which model wrote it (a real provider chain; fakes have none)
     if credit is not None:
         credit()
-    return _question_object(pick, written.question, make_id)
+    return made
+
+
+def _starter(prepared: Prepared, state: RunState, pick: select.Pick, question: dict) -> None:
+    """Give an accepted write_code question a starter code cut from the real file (fix and SQL questions are left
+    exactly as they are). Never fails the question; logs the id, the line count and the source only."""
+    if question["kind"] != "write_code" or question["language"] == "sql":
+        return
+    starter, source = excerpt.starter_for({"symbols": question["why"]["symbols"], "starter_code": question["starter_code"]},
+                                          pick.file.text, pick.file.language)
+    question["starter_code"] = starter
+    state.starter_built += source == "code"
+    state.starter_empty += source == "none"
+    log.info("starter question=%s lines=%d source=%s", question["id"], len(starter.splitlines()), source)
 
 
 def new_state(prepared: Prepared) -> RunState:
@@ -213,7 +238,9 @@ def build_result(prepared: Prepared, state: RunState,
             "limits": {"min": config.MIN_QUESTIONS, "max": config.MAX_QUESTIONS},
             "questions": state.questions, "skipped_skills": state.skipped,
             "dropped": [dict(d) for d in state.drops],
-            "counts": {**prepared.counts, "questions": count, "dropped": len(state.drops)}}
+            "counts": {**prepared.counts, "questions": count, "dropped": len(state.drops),
+                       "normalised": state.normalised, "starter_built": state.starter_built,
+                       "starter_empty": state.starter_empty, "hints_stripped": state.hints_stripped}}
 
 
 def state_from_result(result: dict, replacements: Optional[list] = None, meta: Optional[dict] = None) -> RunState:
@@ -230,6 +257,10 @@ def state_from_result(result: dict, replacements: Optional[list] = None, meta: O
                     used=used, earlier=earlier, dropped=len(drops), drops=drops,
                     asked={q["why"]["skill"] for q in questions + extra if isinstance(q.get("why"), dict)},
                     models_used=dict(used_models),
+                    normalised=int((result.get("counts") or {}).get("normalised", 0) or 0),
+                    starter_built=int((result.get("counts") or {}).get("starter_built", 0) or 0),
+                    starter_empty=int((result.get("counts") or {}).get("starter_empty", 0) or 0),
+                    hints_stripped=int((result.get("counts") or {}).get("hints_stripped", 0) or 0),
                     fallbacks=int(meta.get("fallbacks", 0)) if isinstance(meta, dict) else 0)
 
 

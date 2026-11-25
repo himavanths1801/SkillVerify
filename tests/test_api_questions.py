@@ -175,7 +175,8 @@ def test_the_finished_run_has_the_documented_shape(world):
     assert question["why"]["tier"] == "must_have" and question["why"]["claimed"] is True
     assert result["skipped_skills"] == [{"skill": "Docker", "tier": "nice_to_have", "reason": "not_found_in_code"}]
     assert result["counts"] == {"candidates_skills": 3, "repos_considered": 1, "files_fetched": 4, "files_ranked": 4,
-                                "questions": 3, "dropped": 0}
+                                "questions": 3, "dropped": 0, "normalised": 0, "starter_built": 2,
+                                "starter_empty": 0, "hints_stripped": 0}
     assert world.files.calls["tree"] == 1 and world.files.calls["file"] == 4  # one tree, only the files needed
 
 
@@ -560,5 +561,5 @@ def test_a_failed_replacement_reports_its_dropped_attempts_with_codes_only(world
     assert error["code"] == "no_replacement_available"
     assert error["dropped"] == [{"skill": "Python", "tier": "must_have", "repo": "orders-analysis",
                                  "path": "notebooks/explore.ipynb", "attempts": 2, "reasons": ["wrong_file"],
-                                 "causes": []}]
+                                 "causes": [], "shape_fields": []}]
     assert SECRET not in response.text

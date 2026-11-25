@@ -157,7 +157,8 @@ def test_a_full_run_gives_ok_with_the_why_record_and_ids():
                                 "that uses it.")}
     assert result["questions"][2]["why"]["reason"].startswith("Asked because the job lists Git as a nice-to-have")
     assert result["counts"] == {"candidates_skills": 5, "repos_considered": 3, "files_fetched": 5, "files_ranked": 5,
-                                "questions": 4, "dropped": 0}
+                                "questions": 4, "dropped": 0, "normalised": 0, "starter_built": 2,
+                                "starter_empty": 1, "hints_stripped": 0}
     assert provider.calls == 4 and stages == ["Writing questions", "Checking questions"]
     assert state.used == {("orders-analysis", "analysis.py"), ("orders-analysis", "sql/report.sql"),
                           ("release-tools", "scripts/release.sh"), ("shop-ui", "src/OrderList.jsx")}
@@ -285,7 +286,10 @@ def test_nothing_is_logged_by_the_question_code(caplog):
     prepared = prepare()
     result, state = service.write_all(prepared, writer_for(prepared))
     service.replace_one(prepared, state, writer_for(prepared))
-    assert caplog.records == [] and result["questions"]
+    # the only line the question code logs is the starter line: an id, a line count and a source, no text
+    assert result["questions"]
+    assert all(re.fullmatch(r"starter question=q_\w+ lines=\d+ source=(code|model|none)", r.getMessage())
+               for r in caplog.records)
 
 
 # --------------------------------------------------------------------------

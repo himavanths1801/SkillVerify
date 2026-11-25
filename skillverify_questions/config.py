@@ -39,7 +39,7 @@ CONTROL_FLOW_CAP = 60
 # WHAT GOES TO GEMINI
 # ============================================================================
 MAX_PROMPT_CODE_LINES = 250        # the file is cut to this many lines in the prompt (checks use the whole file)
-WRITER_SETTINGS_VERSION = 1        # bump when the prompt, the checks or the selection rules change: saved question sets stop matching
+WRITER_SETTINGS_VERSION = 4        # bump when the prompt, the checks or the selection rules change: saved question sets stop matching
 MAX_QUESTION_ATTEMPTS = 2          # Gemini calls per question: the first try plus ONE repair
 
 # ============================================================================
@@ -150,13 +150,75 @@ dense_rank lag lead nullif greatest least abs ceil floor
 DROP_REASON_CODES = ("bad_json", "bad_length", "wrong_file", "unknown_file_reference", "unknown_symbol",
                      "unknown_call", "url_or_email", "secret_like", "duplicate", "fix_without_starter",
                      "not_sql_starter", "unknown_sql_name", "no_real_sql_in_file",
-                     "fix_without_example", "fix_example_vacuous", "fix_not_modified")
+                     "fix_without_example", "fix_example_vacuous", "fix_not_modified", "multiple_tasks",
+                     "bug_hint_in_starter")
 # Why a model's answer was unusable JSON (a closed set; added to a dropped entry as ``causes``, never any content):
 #   empty_response  the provider returned no text
 #   cut_off         the provider said the output limit was reached, or the braces never balance
 #   not_json        text without a JSON object in it
 #   wrong_shape     JSON, but not an object, or a required field is missing or has the wrong type
 ANSWER_CAUSES = ("empty_response", "cut_off", "not_json", "wrong_shape")
+
+# Which field made an answer ``wrong_shape`` (a closed set of NAMES; never a value). The first six are the fields the
+# writer asks for; the last three are the parts of a fix question's ``failing_example`` (named in the repair hint of
+# ``fix_without_example``, a check that keeps its own drop code).
+SHAPE_FIELDS = ("kind", "question", "starter_code", "file", "symbols", "reference_notes")
+FAILING_EXAMPLE_FIELDS = ("failing_example.input", "failing_example.expected", "failing_example.actual")
+
+# ============================================================================
+# HARMLESS VARIANTS THAT ARE NORMALISED BEFORE THE CHECKS (conservative; every other difference is judged as it is)
+# ============================================================================
+# ``kind``: lower case, with spaces, underscores and hyphens read as one space, then looked up here.
+KIND_VARIANTS = {"write code": "write_code", "code": "write_code", "fix code": "fix_code", "fix the bug": "fix_code",
+                 "bug fix": "fix_code", "fix": "fix_code"}
+# ``language`` (lower case). Any other language name is left exactly as the model gave it. (The language of a
+# question is set by code from the file's extension; the model's value is never used.)
+LANGUAGE_ALIASES = {"js": "javascript", "ts": "typescript", "py": "python", "node": "javascript",
+                    "nodejs": "javascript"}
+# A field the model named differently: used only when the canonical field is absent, first alias present wins.
+FIELD_ALIASES = {"question": ("question_text", "prompt"), "starter_code": ("starter", "code"),
+                 "reference_notes": ("notes", "solution_notes")}
+# The steps that can fire (a closed set of codes; kept only in a log line and counted, never with content).
+NORMALISE_CODES = ("kind_normalised", "language_normalised", "starter_code_defaulted", "starter_code_joined",
+                   "alias_question", "alias_starter_code", "alias_reference_notes", "whitespace_trimmed")
+
+# ============================================================================
+# NO BUG HINTS IN FIX STARTERS
+# A comment the model ADDED to a fix question's starter code is removed by code (see comments.py). If one that could not
+# be removed safely contains one of these words or phrases (whole words, any case), the question is dropped
+# (``bug_hint_in_starter``). Never echoed anywhere.
+# ============================================================================
+HINT_WORDS = ("bug", "buggy", "wrong", "incorrect", "mistake", "error here", "fix this", "fixme", "should be",
+              "off-by-one", "off by one", "broken", "typo")
+
+# ============================================================================
+# ONE TASK PER QUESTION
+# A question that offers alternatives is rejected (``multiple_tasks``). Conservative on purpose: ordinary sentences such
+# as "true or false", "null or undefined" or "positive or negative" are never matched.
+# ============================================================================
+ALTERNATIVE_PATTERNS = (
+    re.compile(r"(?i)\balternatively\b"),
+    re.compile(r"(?i)\bas an alternative\b"),
+    re.compile(r"(?i)\bor\s+(?:else|instead)\b"),
+    re.compile(r"(?i)\beither\b[^.?!]{0,150}?\bor\s+(?:else\s+)?(?:to\s+)?"
+               r"(?:write|add|implement|modify|create|build|fix|refactor|change|update|rewrite|extend)\b"),
+)
+
+# ============================================================================
+# STARTER CODE FOR write_code QUESTIONS (a real excerpt of the file, cut by code; see excerpt.py)
+# ============================================================================
+EXCERPT_MAX_PLACES = 20            # places a symbol is used that are tried when looking for the area it means
+EXCERPT_MAX_IMPORT_LINES = 10      # import lines kept at the top of an excerpt (dropped first when the room is short)
+# The only placeholder lines the system ever writes, in the file's own comment style. "implement" replaces the body of
+# an existing target function; "add" closes an excerpt where new code is expected. Supported languages only: any other
+# language gets no excerpt (an empty starter), exactly as before.
+STARTER_PLACEHOLDERS = {
+    "implement": {"python": "# TODO: implement", "javascript": "// TODO: implement", "typescript": "// TODO: implement",
+                  "java": "// TODO: implement"},
+    "add": {"python": "# TODO: add your code here", "javascript": "// TODO: add your code here",
+            "typescript": "// TODO: add your code here", "java": "// TODO: add your code here"},
+}
+STARTER_SOURCES = ("code", "model", "none")
 
 # ============================================================================
 # WHICH FILES CAN SHOW A SKILL

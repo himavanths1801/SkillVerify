@@ -117,7 +117,7 @@ room. Maximum 5 questions, minimum 3 for a session; below 3 is reported (`too_fe
 | `MIN_ALIAS_CHARS` | 4 | Shorter aliases are not matched as plain words. |
 | `MIN_EMBEDDED_SQL_STATEMENTS` | 2 | Real statements a non-`.sql` file needs to show SQL. |
 | `SQL_NON_NAMES` | keywords and functions | Words never checked as table or column names. |
-| `DROP_REASON_CODES` | 16 codes | The closed set of drop reasons. |
+| `DROP_REASON_CODES` | 18 codes | The closed set of drop reasons. |
 | `FAILING_EXAMPLE_MAX_CHARS`, `EXAMPLE_SENTENCE` | 120, see the file | Limits of a fix question's failing example and the sentence code appends. |
 | `AMBIGUOUS_EXTENSIONS`, `PRODUCT_NAMES_WITH_EXTENSION` | see the file | Names such as `Node.js` or `obj.c` that look like file names but are not. |
 
@@ -188,7 +188,7 @@ text. `reference_notes` is unchanged and recruiter-only. `schema_version` stays 
 
 ## Dropped questions in the result
 
-`result.dropped` is `[{skill, tier, repo, path, attempts, reasons, causes}]`: metadata and codes only, never code, question text
+`result.dropped` is `[{skill, tier, repo, path, attempts, reasons, causes, shape_fields}]`: metadata and codes only, never code, question text
 or model output. `attempts` is 1 or 2; `reasons` holds the codes of the FINAL failed attempt, then the first attempt's
 codes if different, without duplicates. `causes` (additive) names why a `bad_json` answer was unusable, from the
 closed set `config.ANSWER_CAUSES` (see "Bad JSON and file matching"). `counts.dropped` equals the length of the list. The reason codes are a closed
@@ -206,11 +206,13 @@ set (`config.DROP_REASON_CODES`), each mapped from the failed check:
 | `fix_without_starter` | `starter_code_missing` |
 | `not_sql_starter`, `unknown_sql_name`, `no_real_sql_in_file` | the SQL checks above |
 | `fix_without_example`, `fix_example_vacuous`, `fix_not_modified` | the fix-question checks above |
+| `multiple_tasks` | `multiple_tasks` (the question offers alternatives) |
+| `bug_hint_in_starter` | `bug_hint_in_starter` (a comment the model added to a fix starter points at the bug and could not be removed) |
 
 `skipped_skills` lists only skills that ended with ZERO questions. A skill that has a question and also a dropped attempt
 appears only in `dropped`; a skill whose attempts all failed keeps `question_failed` in `skipped_skills` and has its
 `dropped` entries. Each drop writes one log line with codes only, for example
-`question dropped skill=SQL reasons=unknown_sql_name causes=none`. The replace route returns the same `dropped` list for its own
+`question dropped skill=SQL reasons=unknown_sql_name causes=none shape_fields=none`. The replace route returns the same `dropped` list for its own
 failed attempts (also as `error.dropped` of a `409 no_replacement_available`).
 
 ## Bad JSON and file matching
@@ -315,6 +317,218 @@ at the minimum) and `message` rebuilt with the same sentence and the right N ("O
 the candidate's code. A session needs at least 3."; `null` when `ok`). It applies after a restart too (the replacements
 are read from the saved run), and a regenerate starts again from zero. The server cannot know which questions the
 recruiter removed on the screen, so "effective" means run questions plus replacements.
+
+## Shape detail, normalising and one task
+
+A live run wrote 2 of a possible 5 questions. Four drops were `bad_json` with the cause `wrong_shape` (which field was
+wrong was not recorded), two were a "fix" question whose starter code was not changed from the file or a question that
+was too long or too short, and one kept question asked for three tasks joined by "or" and "alternatively". Free-tier
+models vary, so the goal is fewer avoidable drops and clearer reasons, not zero drops. The checks stay as strict as
+before: nothing here lets an invented symbol, call, file, URL or SQL name through.
+
+### What was found (Step 0)
+
+- **Where `wrong_shape` is decided.** `writer.check` (the first lines). The answer must be a JSON object; `question`,
+  `starter_code`, `file` and `reference_notes` must be strings and `symbols` a list of strings (`wrong_types`); `kind`
+  must be `write_code` or `fix_code` (`kind_invalid`); more than 8 symbols is also `wrong_types`. All of these map to the
+  drop code `bad_json` and the cause `wrong_shape`. A top-level array or scalar is `wrong_shape` already in
+  `answer.parse_answer`. `failing_example` is NOT part of this: a fix question with a missing or unusable example fails
+  its own check `fix_without_example`.
+- **The answer format the writer asks for** (`writer.SYSTEM_PROMPT`): JSON only, exactly
+  `{"kind": "write_code" | "fix_code", "question": string, "starter_code": string, "file": string, "symbols": [string],
+  "reference_notes": string, "failing_example": {"input", "expected", "actual"} | null}`. The model is NOT asked for a
+  `language`: the question's language is set by code from the file's extension (so a `language` the model volunteers is
+  never used).
+- **What the repair attempt told the model.** It already listed the failed checks: `build_prompt` added "Your previous
+  answer failed these checks" and one line per check name with a fixed sentence from `PROBLEM_TEXT` (never the model's
+  text). This change extends that table and those lines instead of adding a second mechanism.
+- **Where the length, "not modified" and URL checks are decided.** `bad_length` = `question_length` (60 to 700
+  characters), `starter_too_long` (more than 40 lines or 2500 characters) and `notes_too_long` (more than 800
+  characters). `fix_not_modified` (`_starter_problem`): the starter code is a verbatim excerpt of the file (every
+  non-blank line appears in it), or fewer than half of its lines are in the file. `url_or_email`: a URL or an e-mail
+  address in the question, starter code, notes or failing example.
+
+### Fix 1: which field was wrong
+
+An answer that is `wrong_shape` records WHICH fields failed, as names from the closed set `config.SHAPE_FIELDS` (`kind`,
+`question`, `starter_code`, `file`, `symbols`, `reference_notes`). `dropped[]` entries gain `shape_fields` (empty when the
+cause is not `wrong_shape`): the final attempt's names, then the first attempt's, in the set's order, no duplicates. The
+drop log line gains `shape_fields=...` (`none` when empty). Names only, never a value.
+
+`config.FAILING_EXAMPLE_FIELDS` (`failing_example.input`, `.expected`, `.actual`) are NOT in `shape_fields`: a bad example
+keeps its own drop code (`fix_without_example`), so changing it to `bad_json` would change existing behaviour. The part
+names appear in the repair hint of that check instead (see Fix 4).
+
+### Fix 2: normalising harmless variants
+
+Before the checks, `writer.normalise_answer` fixes only these differences (closed tables in `config.py`), and the result
+then goes through ALL the existing checks unchanged:
+
+| Field | Accepted variants |
+|---|---|
+| `kind` | any case; spaces, underscores and hyphens count the same: `write_code`, `write code`, `write-code`, `code` become `write_code`; `fix_code`, `fix code`, `fix the bug`, `bug fix`, `fix` become `fix_code`. Anything else stays and fails `kind_invalid`. |
+| `language` | `js` and `node`, `nodejs` become `javascript`, `ts` becomes `typescript`, `py` becomes `python` (any case). Any other name is left exactly as given. The value is not used (the language comes from the file). |
+| `starter_code` | `null` or missing becomes an empty string; a list of strings is joined with newlines (a fix question still needs real starter code). |
+| aliases | `question` also from `question_text` or `prompt`; `starter_code` also from `starter` or `code`; `reference_notes` also from `notes` or `solution_notes`. Only when the canonical field is absent (a canonical field that is present, even `null`, is never replaced); the first alias present wins. |
+| whitespace | `question`, `reference_notes` and `file` are trimmed. `starter_code` keeps its indentation. |
+
+Nothing is invented: a missing `question` or `reference_notes` still fails (and `shape_fields` names it), and a plain-text
+answer is never turned into a question. Each step that fires is a code from `config.NORMALISE_CODES`
+(`kind_normalised`, `language_normalised`, `starter_code_defaulted`, `starter_code_joined`, `alias_question`,
+`alias_starter_code`, `alias_reference_notes`, `whitespace_trimmed`). They are kept only in one log line,
+`answer normalised skill=Python codes=kind_normalised,language_normalised`, and counted in `result.counts.normalised`
+(the number of steps that fired in the run). No content is ever stored.
+
+### Fix 3: one task per question
+
+The writer prompt says the question asks for exactly ONE task (one function, component or change) and must never offer
+alternatives ("or", "alternatively", "either", "or else"). A new system check `multiple_tasks` (drop code
+`multiple_tasks`, so 17 codes at that point) rejects a question text that matches `config.ALTERNATIVE_PATTERNS`: "alternatively",
+"as an alternative", "or else", "or instead", and "either ... or <write|add|implement|modify|create|build|fix|refactor|
+change|update|rewrite|extend>". It does not match ordinary sentences such as "true or false", "null or undefined",
+"positive or negative" or "either way". It runs with the other checks and uses the normal repair attempt and drop path.
+`WRITER_SETTINGS_VERSION` is now 2 (the prompt and the checks changed), so a saved question set made by the old writer is
+not reused for the same account.
+
+### Fix 4: the repair hint says what failed
+
+The one repair attempt lists each failed check with a fixed sentence from `PROBLEM_TEXT` (a closed table, one entry per
+check; never the model's own text). The sentences were extended, for example `fix_not_modified`: "the starter code must
+differ from the file: change at least one line to introduce the bug"; `question_length`: "keep the question between the
+allowed lengths"; `multiple_tasks`: "ask for exactly one task, with no alternatives"; `unknown_symbol`, `unknown_call`,
+`unknown_file_reference` and `url_or_email`: "Only name things that appear in the file; do not include URLs or e-mail
+addresses". For `wrong_types` and `kind_invalid` the line ends with `(fields: ...)` naming the failed fields, and for
+`fix_without_example` it names the unusable `failing_example.*` parts. The repair is still the single repair attempt.
+
+## Starter code for write questions
+
+A live run produced 5 questions, all `write_code`, all with an EMPTY `starter_code` ("In app.js, add a debounce to the
+search input listener."): the student does not have `app.js`, so the editor opened blank and the question referred to
+code they could not see. A fix question already carries real starter code from the file; a write question now gets a
+short, real excerpt of the file too.
+
+### What was found (Step 0)
+
+- **`fix_code` today.** The model writes `starter_code`: the real code with one small deliberate change. `writer.check`
+  requires it to be non-empty (`starter_code_missing`), at most 40 lines and 2500 characters (`starter_too_long`), a
+  modified excerpt (`fix_not_modified`: a verbatim excerpt of the file, or fewer than half of its lines in the file, is
+  rejected) and free of secrets, URLs and e-mail addresses (`secret_like`, `url_or_email`, which look at the question,
+  the starter, the notes and the failing example).
+- **`write_code` today.** The prompt never asked the model for a starter for a write question, and the checks only
+  applied the length, secret and URL checks to whatever it wrote: nothing related it to the file, so an invented or
+  empty starter passed. In practice it was empty.
+- **Where the inputs are.** `service._try` has the fetched file text (`pick.file.text`, already redacted) and the language
+  (`pick.file.language`), and the accepted question has the model's `symbols`. So an excerpt can be cut by code.
+
+### The change: a real excerpt, cut by code
+
+For every accepted `write_code` question that is not a SQL question, `skillverify_questions/excerpt.py` builds
+`starter_code` from the real file, verbatim, around the symbol the question names. The model does not write these lines;
+the prompt now tells it to leave `starter_code` empty for write questions and to name the function, class or variable it
+means in `symbols`.
+
+- **The target is an existing function or method** (for example "implement `parse` in `BaseScraper`" and `parse`
+  exists): its signature stays and its WHOLE body (a docstring too) becomes one placeholder line in the file's own
+  comment style, `# TODO: implement` (Python) or `// TODO: implement` (JavaScript, TypeScript, Java). The excerpt starts
+  with the file's import lines (at most 10, dropped first when the room is short) and the enclosing class header, plus the
+  members of the class before the target that fit (Python; nearest first). A brace-language method also gets the closing
+  braces of its class.
+- **Anything else** (a variable, a class, an area, something the question will add): the largest enclosing block that fits
+  the limit, for the place where the symbol is used that shows the most context, followed by one closing line
+  `# TODO: add your code here` (`//` in JS, TS and Java). A new method, handler or hook is not in the file, so it is not in
+  the excerpt.
+- **Limits.** At most the existing 40 lines and 2500 characters; whole lines only, indentation exactly as in the file; a
+  block is never cut in the middle (a block that does not fit is replaced by the next smaller enclosing block). A line with
+  a URL, an e-mail address, a redacted secret or anything the secret redactor would change is never included: the
+  excerpt stops before it (a smaller block is used) or is dropped.
+- **No answer is shown.** If a target function exists but its body cannot be replaced safely (a one-line body, an arrow
+  function without a block, a function nested in a function, brackets the scanner cannot balance), nothing is shown for it
+  at all, not even as an "area".
+- **Languages.** Python (parsed with the standard library, exact line ranges), JavaScript, TypeScript and Java (a small
+  scanner that skips comments, strings, template literals and text blocks and gives up when brackets do not balance). Any
+  other language, or a file where a safe cut is not possible, leaves `starter_code` empty exactly as before.
+  **A question is never dropped, and a run never fails, only because no excerpt could be built.**
+- **The model's own starter.** If it returned one, it is used only when no excerpt can be built AND every line of it is a
+  line of the file, a blank line, a comment or a placeholder line (and it is safe and within the limits). Otherwise it is
+  replaced by the excerpt, or by an empty string.
+- **Fix and SQL questions behave exactly as today** (the new code does not touch them).
+
+The placeholder lines come from the closed table `config.STARTER_PLACEHOLDERS` (`implement` and `add`, one line per
+language). Replacement questions use the same rules.
+
+### Counts and the log line
+
+`result.counts` gains `starter_built` (write questions whose starter was cut from the file) and `starter_empty` (write
+questions with no starter); a starter that is the model's own is counted in neither. They survive a resume. One log line
+per accepted write question: `starter question=q_1a2b3c4d lines=12 source=code` (`source` is `code`, `model` or `none`;
+an id, a number and a word, never any text). The excerpt itself is public repo text and is only ever in the question's
+`starter_code`, exactly like the starter code of a fix question.
+
+`WRITER_SETTINGS_VERSION` is now 3, so a saved question set made by the old writer is not reused. The review screen
+already shows `starter_code` with its show-all control; nothing in `web/` changed.
+
+## No bug hints in fix starters
+
+A live fix-the-bug question for a React file (`Chat.jsx`, `handleSend`) had `// BUG: wrong event name emitted` inside its
+starter code: the model added a comment that points straight at the bug, so the student had nothing to find. A fix
+starter must look like the real file with ONE bug planted in the code itself, with no comment that explains, labels or
+hints at it.
+
+### What was found (Step 0)
+
+- **How a fix starter is built and checked.** The model writes the whole `starter_code`: the real code with one small
+  deliberate change. `writer.check` requires it to be non-empty (`starter_code_missing` -> drop code
+  `fix_without_starter`), at most 40 lines and 2500 characters, and not a verbatim excerpt (`fix_not_modified`), and it
+  runs the secret and URL checks over it with the rest of the answer (`secret_like`, `url_or_email`). The file-match rule
+  is inside `fix_not_modified`.
+- **How lines are compared with the real file.** `_starter_problem` strips every line and checks it against the set of
+  stripped, non-blank lines of the real file: if every starter line is in the file, nothing was changed; if fewer than half
+  of the lines are in the file, too much was changed. Before this change comments were ordinary text in that comparison, so
+  an added comment counted as "a changed line" and could make an unmodified starter look modified.
+- **Comment styles the starter-excerpt code already understood.** `excerpt.py` (write questions) masks `//` and
+  `/* */` comments and the contents of strings, template literals and Java text blocks for JavaScript, TypeScript and
+  Java, and uses the Python parser for Python. It never removed or inspected comments; it only skipped them when matching
+  brackets. The new `comments.py` is a separate, more careful scanner for comments themselves.
+
+### The change
+
+Before the checks run, every `fix_code` starter is compared with the real file, and every comment in the starter that is
+NOT in the real file is removed by code (`comments.strip_added_comments`):
+
+- a whole-line comment (the line disappears), a trailing comment (the code on the line stays), a block comment (also over
+  several lines), a JSX `{/* ... */}` comment (its braces go too) and an HTML `<!-- -->` comment;
+- a comment that exists in the real file stays as it is (compared without its markers and case; a comment of the starter
+  that is part of a longer comment of the file also counts as existing);
+- docstrings are strings, not comments, and are never touched.
+
+The scanner is conservative. Python: `#` outside strings. JavaScript, TypeScript, Java and the other C-like languages
+(`c`, `cpp`, `csharp`, `go`, `rust`, `kotlin`, `scala`): `//` and `/* */`, plus `<!-- -->` in JS and TS. Strings,
+template literals (also over several lines) and, for JS and TS, regular expressions are skipped, so `//` or `#` inside
+them is never a comment. Any other language (shell, Ruby, R, PHP, SQL) is left exactly as before. When the scanner cannot
+tell safely what a line is (an apostrophe in JSX text, an unterminated string, a regular expression that does not close, a
+block comment that never closes), the line is left alone.
+
+**Hint words.** `config.HINT_WORDS` is a small closed list (`bug`, `buggy`, `wrong`, `incorrect`, `mistake`,
+`error here`, `fix this`, `fixme`, `should be`, `off-by-one`, `off by one`, `broken`, `typo`; whole words, any case). If
+a line that was left alone for the reason above is not a line of the real file and has a hint word after a comment
+marker, the question is dropped with the new drop reason `bug_hint_in_starter` (the closed set is now 18 codes). A line
+like that without a hint word is left as it is. No comment text is echoed anywhere.
+
+**Order of checks.** Strip first, then the existing checks run on the cleaned starter. `fix_not_modified` compares the
+starter WITHOUT comments with the real file WITHOUT comments, so a starter that differs only by an added or removed
+comment is "not modified" (and a real code change plus an added hint comment is kept, with the comment removed and the bug
+intact).
+
+**Prompt and repair.** The writer prompt says fix starter code is the real file lines with the bug planted in the code
+itself, with no comments added or changed, no markers such as BUG, FIXME or TODO and no explanation inside the code (the
+explanation belongs only in `reference_notes`). The repair hint table has a fixed sentence for the new code: "remove any
+comment from the starter code that explains or points at the bug". The repair is still the single repair attempt.
+
+**Counts and logs.** `result.counts.hints_stripped` (always present, 0 when none) is the number of comments removed from
+the starters of the questions that were kept; it survives a resume. One log line per affected question:
+`starter question=q_1a2b3c4d hints_stripped=2` (an id and a number). Write-code and SQL questions are not touched.
+`WRITER_SETTINGS_VERSION` is now 4, so a saved question set made by the old writer is not reused; replacement questions
+use the same rules. The review screen needed no change.
 
 ## Writing and checking a question
 

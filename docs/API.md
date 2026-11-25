@@ -185,9 +185,17 @@ to the next (see "Model chain and saved results").
   `attempts` (1 or 2) and `reasons`, a list of codes from the closed set `bad_json`, `bad_length`, `wrong_file`,
   `unknown_file_reference`, `unknown_symbol`, `unknown_call`, `url_or_email`, `secret_like`, `duplicate`,
   `fix_without_starter`, `not_sql_starter`, `unknown_sql_name`, `no_real_sql_in_file`, `fix_without_example`,
-  `fix_example_vacuous`, `fix_not_modified` (final attempt first). Each entry also has `causes` (additive): for a
+  `fix_example_vacuous`, `fix_not_modified`, `multiple_tasks`, `bug_hint_in_starter` (final attempt first). Each entry also has `causes` (additive): for a
   `bad_json` drop, the codes `empty_response`, `cut_off`, `not_json`, `wrong_shape` that say why the answer was
-  unusable (final attempt first, no duplicates; an empty list otherwise). Metadata and codes only. `counts.dropped` equals its length. `skipped_skills` lists only skills with zero questions.
+  unusable (final attempt first, no duplicates; an empty list otherwise), and `shape_fields` (additive): for a
+  `wrong_shape` answer, the NAMES of the fields that were wrong (`kind`, `question`, `starter_code`, `file`,
+  `symbols`, `reference_notes`; empty otherwise). Metadata and codes only. `counts.hints_stripped` (additive, always present) is how many comments the model added to the starter code of fix
+  questions that were removed by code (a fix starter must not point at its own bug).
+  `counts.starter_built` and `counts.starter_empty` (additive) count the write questions whose starter code was cut from
+  the real file by code (a short excerpt of the file around the symbol the question names, with the body of an
+  existing target replaced by a placeholder line) and those left without one (unsupported language or no safe cut).
+  `counts.normalised` (additive) is how many
+  harmless answer variants (a differently spelled `kind`, a `null` starter code, ...) were fixed before the checks. `counts.dropped` equals its length. `skipped_skills` lists only skills with zero questions.
 - `kind` is `write_code` or `fix_code`. Skip reasons are a closed set: `not_found_in_code`,
   `not_checkable_from_code`, `no_usable_file`, `question_failed`, `not_enough_room`.
 - **Recruiter-only fields:** `why` and `reference_notes`. The student-visible fields are only `question`, `language`
